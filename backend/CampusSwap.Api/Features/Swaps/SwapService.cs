@@ -145,6 +145,108 @@ public class SwapService(AppDbContext db)
         return SwapResult.Ok();
     }
 
+    // After meeting up, each student presses "We swapped".
+    // When both have confirmed: offer + listing become Completed and both items Swapped.
+    public async Task<SwapResult> ConfirmSwapAsync(int offerId, int studentId, CancellationToken ct = default)
+    {
+        var listingId = await FindListingIdAsync(offerId, ct);
+        if (listingId is null)
+            return SwapResult.NotFound();
+
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+        var listing = await LockListingAsync(listingId.Value, ct);
+        if (listing is null)
+            return SwapResult.NotFound();
+
+        var offer = await db.SwapOffers
+            .Include(o => o.OfferedItem)
+            .SingleAsync(o => o.Id == offerId, ct);
+
+        var isOwner = listing.OwnerId == studentId;
+        var isOfferer = offer.OfferedById == studentId;
+        if (!isOwner && !isOfferer)
+            return SwapResult.Forbidden("Only the two students in this swap can confirm it.");
+        if (offer.Status != OfferStatus.Accepted)
+            return SwapResult.Conflict("Only accepted swaps that are not completed yet can be confirmed.");
+
+        var now = DateTime.UtcNow;
+        if (isOwner)
+            offer.OwnerConfirmedAt ??= now;
+        if (isOfferer)
+            offer.OffererConfirmedAt ??= now;
+
+        if (offer.OwnerConfirmedAt is not null && offer.OffererConfirmedAt is not null)
+        {
+            var listingItem = await db.Items.SingleAsync(i => i.Id == listing.ItemId, ct);
+
+            offer.Status = OfferStatus.Completed;
+            listing.Status = ListingStatus.Completed;
+            listingItem.Status = ItemStatus.Swapped;
+            if (offer.OfferedItem is not null)
+                offer.OfferedItem.Status = ItemStatus.Swapped;
+        }
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            return SwapResult.Ok();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return SwapResult.Conflict("Someone changed this swap at the same time. Please refresh and try again.");
+        }
+    }
+
+    // Either student calls off an accepted swap before it is completed.
+    // The listing opens again and both items become available.
+    public async Task<SwapResult> CancelSwapAsync(int offerId, int studentId, CancellationToken ct = default)
+    {
+        var listingId = await FindListingIdAsync(offerId, ct);
+        if (listingId is null)
+            return SwapResult.NotFound();
+
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+
+        var listing = await LockListingAsync(listingId.Value, ct);
+        if (listing is null)
+            return SwapResult.NotFound();
+
+        var offer = await db.SwapOffers
+            .Include(o => o.OfferedItem)
+            .SingleAsync(o => o.Id == offerId, ct);
+
+        var isOwner = listing.OwnerId == studentId;
+        var isOfferer = offer.OfferedById == studentId;
+        if (!isOwner && !isOfferer)
+            return SwapResult.Forbidden("Only the two students in this swap can cancel it.");
+        if (offer.Status != OfferStatus.Accepted)
+            return SwapResult.Conflict("Only accepted swaps that are not completed yet can be cancelled.");
+
+        var listingItem = await db.Items.SingleAsync(i => i.Id == listing.ItemId, ct);
+
+        // Owner backing out = rejected; offerer backing out = withdrawn
+        offer.Status = isOwner ? OfferStatus.Rejected : OfferStatus.Withdrawn;
+        offer.OwnerConfirmedAt = null;
+        offer.OffererConfirmedAt = null;
+        listing.Status = ListingStatus.Open;
+        listingItem.Status = ItemStatus.Available;
+        if (offer.OfferedItem is not null)
+            offer.OfferedItem.Status = ItemStatus.Available;
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            return SwapResult.Ok();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return SwapResult.Conflict("Someone changed this swap at the same time. Please refresh and try again.");
+        }
+    }
+
     private Task<int?> FindListingIdAsync(int offerId, CancellationToken ct)
         => db.SwapOffers
             .Where(o => o.Id == offerId)

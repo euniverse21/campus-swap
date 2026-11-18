@@ -4,6 +4,7 @@ import type { ListingDetail, Offer } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { OfferCard } from './OfferCard'
 import { OfferForm } from './OfferForm'
+import { SwapPanel } from './SwapPanel'
 import './Offers.css'
 
 interface LoadResult {
@@ -92,12 +93,22 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
 
         {accepted && (
           <div className="offers-section__accepted">
-            <h2>Accepted offer</h2>
-            <p className="offers-section__message">
-              You accepted {accepted.offeredBy.displayName}&apos;s offer. Both items are now reserved.
-              Next you&apos;ll be able to chat and arrange the swap.
-            </p>
+            <h2>{accepted.status === 'Completed' ? 'Swapped with' : 'Accepted offer'}</h2>
+            {accepted.status === 'Accepted' && (
+              <p className="offers-section__message">
+                You accepted {accepted.offeredBy.displayName}&apos;s offer. Both items are reserved for this swap.
+              </p>
+            )}
             <OfferCard offer={accepted} />
+            <SwapPanel
+              offer={accepted}
+              role="owner"
+              otherName={accepted.offeredBy.displayName}
+              onChanged={() => {
+                setReloadCount((n) => n + 1)
+                onListingChanged()
+              }}
+            />
           </div>
         )}
 
@@ -161,7 +172,7 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
 
         {closed.length > 0 && (
           <details className="offers-section__past">
-            <summary>Declined offers ({closed.length})</summary>
+            <summary>Closed offers ({closed.length})</summary>
             <div className="offers-section__list">
               {closed.map((offer) => (
                 <OfferCard key={offer.id} offer={offer} />
@@ -184,11 +195,22 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
 
       {myAccepted ? (
         <div className="offers-section__accepted">
-          <h2>🎉 Your offer was accepted!</h2>
-          <p className="offers-section__message">
-            {listing.owner.displayName} accepted your offer. Both items are reserved for this swap.
-          </p>
+          <h2>{myAccepted.status === 'Completed' ? 'Swap completed' : '🎉 Your offer was accepted!'}</h2>
+          {myAccepted.status === 'Accepted' && (
+            <p className="offers-section__message">
+              {listing.owner.displayName} accepted your offer. Both items are reserved for this swap.
+            </p>
+          )}
           <OfferCard offer={myAccepted} />
+          <SwapPanel
+            offer={myAccepted}
+            role="offerer"
+            otherName={listing.owner.displayName}
+            onChanged={() => {
+              setReloadCount((n) => n + 1)
+              onListingChanged()
+            }}
+          />
         </div>
       ) : myPending ? (
         <>

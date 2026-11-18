@@ -27,3 +27,13 @@ export function acceptOffer(offerId: number): Promise<void> {
 export function rejectOffer(offerId: number): Promise<void> {
   return apiFetch<void>(`/api/offers/${offerId}/reject`, { method: 'POST' })
 }
+
+// Either student in an accepted swap: "We swapped" (completed when both confirm)
+export function confirmSwap(offerId: number): Promise<void> {
+  return apiFetch<void>(`/api/offers/${offerId}/confirm`, { method: 'POST' })
+}
+
+// Either student calls off an accepted swap; the listing opens again
+export function cancelSwap(offerId: number): Promise<void> {
+  return apiFetch<void>(`/api/offers/${offerId}/cancel-swap`, { method: 'POST' })
+}

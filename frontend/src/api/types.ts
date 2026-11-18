@@ -97,6 +97,8 @@ export interface Offer {
   createdAt: string
   offeredBy: Student
   offeredItem: OfferedItem | null
+  ownerConfirmedAt: string | null
+  offererConfirmedAt: string | null
   isMine: boolean
 }
 
@@ -111,4 +113,13 @@ export interface ListingBrief {
 export interface SentOffer {
   offer: Offer
   listing: ListingBrief
+}
+
+export interface ChatMessage {
+  id: number
+  senderId: number
+  senderName: string
+  body: string
+  sentAt: string
+  isMine: boolean
 }

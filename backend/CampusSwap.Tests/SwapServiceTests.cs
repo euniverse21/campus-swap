@@ -161,4 +161,83 @@ public class SwapServiceTests(PostgresFixture fx)
 
         Assert.Equal(SwapError.Conflict, result.Error);
     }
+
+    [Fact]
+    public async Task Confirm_ByBothStudents_CompletesSwap_AndMarksItemsSwapped()
+    {
+        var s = await CreateScenarioAsync();
+        await RunAsync(swaps => swaps.AcceptOfferAsync(s.TomOfferId, s.OwnerId));
+
+        var first = await RunAsync(swaps => swaps.ConfirmSwapAsync(s.TomOfferId, s.OwnerId));
+        await using (var db = fx.CreateContext())
+        {
+            // One confirmation is not enough
+            Assert.Equal(OfferStatus.Accepted, (await db.SwapOffers.SingleAsync(o => o.Id == s.TomOfferId)).Status);
+        }
+
+        var second = await RunAsync(swaps => swaps.ConfirmSwapAsync(s.TomOfferId, s.TomId));
+
+        Assert.True(first.Succeeded);
+        Assert.True(second.Succeeded);
+
+        await using var check = fx.CreateContext();
+        var listing = await check.Listings.Include(l => l.Item).SingleAsync(l => l.Id == s.ListingId);
+        var offer = await check.SwapOffers.Include(o => o.OfferedItem).SingleAsync(o => o.Id == s.TomOfferId);
+        Assert.Equal(ListingStatus.Completed, listing.Status);
+        Assert.Equal(ItemStatus.Swapped, listing.Item.Status);
+        Assert.Equal(OfferStatus.Completed, offer.Status);
+        Assert.Equal(ItemStatus.Swapped, offer.OfferedItem!.Status);
+    }
+
+    [Fact]
+    public async Task Confirm_ByStudentOutsideTheSwap_IsForbidden()
+    {
+        var s = await CreateScenarioAsync();
+        await RunAsync(swaps => swaps.AcceptOfferAsync(s.TomOfferId, s.OwnerId));
+
+        var result = await RunAsync(swaps => swaps.ConfirmSwapAsync(s.TomOfferId, s.AmyId));
+
+        Assert.Equal(SwapError.Forbidden, result.Error);
+    }
+
+    [Fact]
+    public async Task Confirm_PendingOffer_IsConflict()
+    {
+        var s = await CreateScenarioAsync();
+
+        var result = await RunAsync(swaps => swaps.ConfirmSwapAsync(s.TomOfferId, s.OwnerId));
+
+        Assert.Equal(SwapError.Conflict, result.Error);
+    }
+
+    [Fact]
+    public async Task CancelSwap_ReopensListing_AndFreesBothItems()
+    {
+        var s = await CreateScenarioAsync();
+        await RunAsync(swaps => swaps.AcceptOfferAsync(s.TomOfferId, s.OwnerId));
+
+        var result = await RunAsync(swaps => swaps.CancelSwapAsync(s.TomOfferId, s.TomId));
+
+        Assert.True(result.Succeeded);
+        await using var db = fx.CreateContext();
+        var listing = await db.Listings.Include(l => l.Item).SingleAsync(l => l.Id == s.ListingId);
+        var offer = await db.SwapOffers.Include(o => o.OfferedItem).SingleAsync(o => o.Id == s.TomOfferId);
+        Assert.Equal(ListingStatus.Open, listing.Status);
+        Assert.Equal(ItemStatus.Available, listing.Item.Status);
+        Assert.Equal(OfferStatus.Withdrawn, offer.Status);   // Tom backed out
+        Assert.Equal(ItemStatus.Available, offer.OfferedItem!.Status);
+    }
+
+    [Fact]
+    public async Task CancelSwap_AfterCompleted_IsConflict()
+    {
+        var s = await CreateScenarioAsync();
+        await RunAsync(swaps => swaps.AcceptOfferAsync(s.TomOfferId, s.OwnerId));
+        await RunAsync(swaps => swaps.ConfirmSwapAsync(s.TomOfferId, s.OwnerId));
+        await RunAsync(swaps => swaps.ConfirmSwapAsync(s.TomOfferId, s.TomId));
+
+        var result = await RunAsync(swaps => swaps.CancelSwapAsync(s.TomOfferId, s.OwnerId));
+
+        Assert.Equal(SwapError.Conflict, result.Error);
+    }
 }

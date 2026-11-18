@@ -42,6 +42,8 @@ public record OfferDto(
     DateTime CreatedAt,
     StudentDto OfferedBy,
     OfferedItemDto? OfferedItem,
+    DateTime? OwnerConfirmedAt,
+    DateTime? OffererConfirmedAt,
     bool IsMine);
 
 // Short description of the listing an offer was sent to (for "My offers")

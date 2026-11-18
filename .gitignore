@@ -488,3 +488,6 @@ $RECYCLE.BIN/
 
 # Campus Swap: locally uploaded photos (development only)
 backend/CampusSwap.Api/uploads/
+
+# Campus Swap: local development files (dev email log)
+.dev/

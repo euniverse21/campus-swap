@@ -80,7 +80,12 @@ export function MyOffersPage() {
               <OfferCard
                 offer={offer}
                 actions={
-                  offer.status === 'Pending' && (
+                  offer.status === 'Accepted' ? (
+                    <Link to={`/listings/${listing.id}`} className="btn btn--primary">
+                      Open chat & swap details →
+                    </Link>
+                  ) : (
+                    offer.status === 'Pending' && (
                     <button
                       type="button"
                       className="btn btn--ghost"
@@ -89,6 +94,7 @@ export function MyOffersPage() {
                     >
                       {withdrawingId === offer.id ? 'Withdrawing…' : 'Withdraw offer'}
                     </button>
+                    )
                   )
                 }
               />

@@ -162,6 +162,16 @@ public class OffersController(AppDbContext db, PhotoUploader photoUploader, Swap
     public async Task<IActionResult> Reject(int id, CancellationToken ct)
         => this.ToActionResult(await swaps.RejectOfferAsync(id, User.GetStudentId(), ct));
 
+    // After meeting up: "We swapped". Completed when both students have confirmed.
+    [HttpPost("api/offers/{id:int}/confirm")]
+    public async Task<IActionResult> Confirm(int id, CancellationToken ct)
+        => this.ToActionResult(await swaps.ConfirmSwapAsync(id, User.GetStudentId(), ct));
+
+    // Either student calls off an accepted swap; the listing opens again
+    [HttpPost("api/offers/{id:int}/cancel-swap")]
+    public async Task<IActionResult> CancelSwap(int id, CancellationToken ct)
+        => this.ToActionResult(await swaps.CancelSwapAsync(id, User.GetStudentId(), ct));
+
     private IQueryable<SwapOffer> OffersWithDetails()
         => db.SwapOffers
             .AsNoTracking()
@@ -195,6 +205,8 @@ public class OffersController(AppDbContext db, PhotoUploader photoUploader, Swap
                     .OrderBy(p => p.SortOrder)
                     .Select(p => Request.ToAbsoluteUrl(p.Url))
                     .ToList()),
+        offer.OwnerConfirmedAt,
+        offer.OffererConfirmedAt,
         IsMine: offer.OfferedById == currentStudentId);
 
     private ObjectResult PendingOfferConflict() => Problem(
