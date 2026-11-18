@@ -1,4 +1,9 @@
+using System.Threading.RateLimiting;
 using CampusSwap.Api.Data;
+using CampusSwap.Api.Features.Verification;
+using CampusSwap.Api.Infrastructure.Email;
+using CampusSwap.Api.Infrastructure.Security;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +25,33 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
+// Student verification settings + email sender (console output during development)
+builder.Services.Configure<StudentVerificationOptions>(
+    builder.Configuration.GetSection(StudentVerificationOptions.SectionName));
+builder.Services.AddScoped<IEmailSender, ConsoleEmailSender>();
+
+// Authentication: "Authorization: Bearer <session token>" identifies the student
+builder.Services
+    .AddAuthentication(StudentTokenAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, StudentTokenAuthenticationHandler>(
+        StudentTokenAuthenticationHandler.SchemeName, _ => { });
+builder.Services.AddAuthorization();
+
+// Rate limiting: stop anyone from spamming verification emails
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(RateLimitPolicies.VerificationCode, httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueLimit = 0,
+            }));
+});
+
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -33,6 +65,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
+app.UseRateLimiter();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
