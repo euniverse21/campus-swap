@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:17
+    container_name: campusswap-db
+    environment:
+      POSTGRES_USER: swap
+      POSTGRES_PASSWORD: swap_dev
+      POSTGRES_DB: campusswap
+    ports:
+      - "5433:5432"
+    volumes:
+      - campusswap-pgdata:/var/lib/postgresql/data
+
+volumes:
+  campusswap-pgdata:
