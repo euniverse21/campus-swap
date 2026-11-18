@@ -485,3 +485,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Campus Swap: locally uploaded photos (development only)
+backend/CampusSwap.Api/uploads/

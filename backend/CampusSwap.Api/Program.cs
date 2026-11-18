@@ -3,8 +3,10 @@ using CampusSwap.Api.Data;
 using CampusSwap.Api.Features.Verification;
 using CampusSwap.Api.Infrastructure.Email;
 using CampusSwap.Api.Infrastructure.Security;
+using CampusSwap.Api.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +31,9 @@ builder.Services.AddCors(options =>
 builder.Services.Configure<StudentVerificationOptions>(
     builder.Configuration.GetSection(StudentVerificationOptions.SectionName));
 builder.Services.AddScoped<IEmailSender, ConsoleEmailSender>();
+
+// Photo storage: local "uploads" folder during development (Azure Blob later)
+builder.Services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
 
 // Authentication: "Authorization: Bearer <session token>" identifies the student
 builder.Services
@@ -64,6 +69,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Serve uploaded photos at /uploads/<file>
+var uploadsFolder = LocalPhotoStorage.GetFolderPath(app.Environment);
+Directory.CreateDirectory(uploadsFolder);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsFolder),
+    RequestPath = LocalPhotoStorage.RequestPath,
+});
+
 app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
