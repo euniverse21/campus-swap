@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getOffersForListing, withdrawOffer } from '../api/offers'
+import { acceptOffer, getOffersForListing, rejectOffer, withdrawOffer } from '../api/offers'
 import type { ListingDetail, Offer } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { OfferCard } from './OfferCard'
@@ -12,17 +12,26 @@ interface LoadResult {
   error?: string
 }
 
+interface ListingOffersSectionProps {
+  listing: ListingDetail
+  // Called after an action that changes the listing itself (accept, reject, new offer)
+  onListingChanged: () => void
+}
+
+type PendingAction = { offerId: number; kind: 'accept' | 'reject' | 'withdraw' }
+
 // Offers on one listing.
-// Owner: sees every offer. Other students: see their own offer, or a button to make one.
-export function ListingOffersSection({ listing }: { listing: ListingDetail }) {
+// Owner: sees every offer and can accept or reject. Other students: see their own offer, or make one.
+export function ListingOffersSection({ listing, onListingChanged }: ListingOffersSectionProps) {
   const { student } = useAuth()
   const [result, setResult] = useState<LoadResult | null>(null)
   const [reloadCount, setReloadCount] = useState(0)
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [withdrawingId, setWithdrawingId] = useState<number | null>(null)
+  const [confirmAcceptId, setConfirmAcceptId] = useState<number | null>(null)
+  const [busy, setBusy] = useState<PendingAction | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const key = `${listing.id}:${student?.id ?? 'guest'}:${reloadCount}`
+  const key = `${listing.id}:${listing.status}:${student?.id ?? 'guest'}:${reloadCount}`
 
   useEffect(() => {
     if (!student) return
@@ -45,58 +54,143 @@ export function ListingOffersSection({ listing }: { listing: ListingDetail }) {
 
   if (!student) return null
 
-  const reload = () => setReloadCount((n) => n + 1)
-
-  async function handleWithdraw(offerId: number) {
+  // Runs accept / reject / withdraw, then refreshes the offers and the listing
+  async function run(action: PendingAction) {
     setActionError(null)
-    setWithdrawingId(offerId)
+    setBusy(action)
     try {
-      await withdrawOffer(offerId)
-      reload()
+      if (action.kind === 'accept') await acceptOffer(action.offerId)
+      else if (action.kind === 'reject') await rejectOffer(action.offerId)
+      else await withdrawOffer(action.offerId)
+
+      setConfirmAcceptId(null)
+      setReloadCount((n) => n + 1)
+      onListingChanged()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not withdraw the offer.')
+      setActionError(err instanceof Error ? err.message : 'Something went wrong. Please refresh and try again.')
+      setReloadCount((n) => n + 1) // the offer may have changed meanwhile: show the latest state
     } finally {
-      setWithdrawingId(null)
+      setBusy(null)
     }
   }
+
+  const isBusy = (offerId: number, kind: PendingAction['kind']) =>
+    busy?.offerId === offerId && busy.kind === kind
 
   if (!result || result.key !== key) return <p className="offers-section__message">Loading offers…</p>
   if (result.error) return <p className="form-error">{result.error}</p>
 
   // ----- Owner view -----
   if (listing.isMine) {
+    const accepted = result.offers.find((o) => o.status === 'Accepted' || o.status === 'Completed')
     const pending = result.offers.filter((o) => o.status === 'Pending')
-    const others = result.offers.filter((o) => o.status !== 'Pending')
+    const closed = result.offers.filter((o) => o !== accepted && o.status !== 'Pending')
 
     return (
       <section className="offers-section">
-        <h2>Offers {pending.length > 0 && <span className="offers-section__count">{pending.length}</span>}</h2>
+        {actionError && <p className="form-error">{actionError}</p>}
 
-        {result.offers.length === 0 && (
-          <p className="offers-section__message">No offers yet. Share your listing with friends!</p>
+        {accepted && (
+          <div className="offers-section__accepted">
+            <h2>Accepted offer</h2>
+            <p className="offers-section__message">
+              You accepted {accepted.offeredBy.displayName}&apos;s offer. Both items are now reserved.
+              Next you&apos;ll be able to chat and arrange the swap.
+            </p>
+            <OfferCard offer={accepted} />
+          </div>
+        )}
+
+        {!accepted && (
+          <>
+            <h2>
+              Offers {pending.length > 0 && <span className="offers-section__count">{pending.length}</span>}
+            </h2>
+            {pending.length === 0 && (
+              <p className="offers-section__message">No offers yet. Share your listing with friends!</p>
+            )}
+          </>
         )}
 
         <div className="offers-section__list">
           {pending.map((offer) => (
-            <OfferCard key={offer.id} offer={offer} />
-          ))}
-          {others.map((offer) => (
-            <OfferCard key={offer.id} offer={offer} />
+            <OfferCard
+              key={offer.id}
+              offer={offer}
+              actions={
+                listing.status === 'Open' &&
+                (confirmAcceptId === offer.id ? (
+                  <div className="offers-section__confirm">
+                    <span>Accept this offer? Other offers will be declined.</span>
+                    <button
+                      type="button"
+                      className="btn btn--primary"
+                      onClick={() => run({ offerId: offer.id, kind: 'accept' })}
+                      disabled={busy !== null}
+                    >
+                      {isBusy(offer.id, 'accept') ? 'Accepting…' : 'Yes, accept'}
+                    </button>
+                    <button type="button" className="btn btn--ghost" onClick={() => setConfirmAcceptId(null)}>
+                      Not yet
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn--primary"
+                      onClick={() => setConfirmAcceptId(offer.id)}
+                      disabled={busy !== null}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      onClick={() => run({ offerId: offer.id, kind: 'reject' })}
+                      disabled={busy !== null}
+                    >
+                      {isBusy(offer.id, 'reject') ? 'Declining…' : 'Decline'}
+                    </button>
+                  </>
+                ))
+              }
+            />
           ))}
         </div>
+
+        {closed.length > 0 && (
+          <details className="offers-section__past">
+            <summary>Declined offers ({closed.length})</summary>
+            <div className="offers-section__list">
+              {closed.map((offer) => (
+                <OfferCard key={offer.id} offer={offer} />
+              ))}
+            </div>
+          </details>
+        )}
       </section>
     )
   }
 
   // ----- Other students' view -----
+  const myAccepted = result.offers.find((o) => o.status === 'Accepted' || o.status === 'Completed')
   const myPending = result.offers.find((o) => o.status === 'Pending')
-  const myPast = result.offers.filter((o) => o !== myPending)
+  const myPast = result.offers.filter((o) => o !== myPending && o !== myAccepted)
 
   return (
     <section className="offers-section">
       {actionError && <p className="form-error">{actionError}</p>}
 
-      {myPending ? (
+      {myAccepted ? (
+        <div className="offers-section__accepted">
+          <h2>🎉 Your offer was accepted!</h2>
+          <p className="offers-section__message">
+            {listing.owner.displayName} accepted your offer. Both items are reserved for this swap.
+          </p>
+          <OfferCard offer={myAccepted} />
+        </div>
+      ) : myPending ? (
         <>
           <h2>Your offer</h2>
           <OfferCard
@@ -105,10 +199,10 @@ export function ListingOffersSection({ listing }: { listing: ListingDetail }) {
               <button
                 type="button"
                 className="btn btn--ghost"
-                onClick={() => handleWithdraw(myPending.id)}
-                disabled={withdrawingId === myPending.id}
+                onClick={() => run({ offerId: myPending.id, kind: 'withdraw' })}
+                disabled={busy !== null}
               >
-                {withdrawingId === myPending.id ? 'Withdrawing…' : 'Withdraw offer'}
+                {isBusy(myPending.id, 'withdraw') ? 'Withdrawing…' : 'Withdraw offer'}
               </button>
             }
           />
@@ -121,7 +215,8 @@ export function ListingOffersSection({ listing }: { listing: ListingDetail }) {
           wantedDescription={listing.wantedDescription}
           onSubmitted={() => {
             setIsFormOpen(false)
-            reload()
+            setReloadCount((n) => n + 1)
+            onListingChanged()
           }}
           onCancel={() => setIsFormOpen(false)}
         />

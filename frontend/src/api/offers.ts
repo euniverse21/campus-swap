@@ -18,3 +18,12 @@ export function withdrawOffer(offerId: number): Promise<void> {
 export function getMyOffers(): Promise<SentOffer[]> {
   return apiFetch<SentOffer[]>('/api/offers/mine')
 }
+
+// Listing owner only
+export function acceptOffer(offerId: number): Promise<void> {
+  return apiFetch<void>(`/api/offers/${offerId}/accept`, { method: 'POST' })
+}
+
+export function rejectOffer(offerId: number): Promise<void> {
+  return apiFetch<void>(`/api/offers/${offerId}/reject`, { method: 'POST' })
+}

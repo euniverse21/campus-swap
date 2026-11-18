@@ -1,5 +1,6 @@
 using CampusSwap.Api.Data;
 using CampusSwap.Api.Entities;
+using CampusSwap.Api.Features.Swaps;
 using CampusSwap.Api.Features.Verification;
 using CampusSwap.Api.Infrastructure.Http;
 using CampusSwap.Api.Infrastructure.Security;
@@ -12,7 +13,7 @@ namespace CampusSwap.Api.Features.Listings;
 
 [ApiController]
 [Route("api/listings")]
-public class ListingsController(AppDbContext db, PhotoUploader photoUploader) : ControllerBase
+public class ListingsController(AppDbContext db, PhotoUploader photoUploader, SwapService swaps) : ControllerBase
 {
     private const int MaxPhotos = 5;
     private const long MaxRequestBytes = 30 * 1024 * 1024; // whole form
@@ -149,31 +150,7 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader) : 
     [Authorize]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Cancel(int id, CancellationToken ct)
-    {
-        var listing = await db.Listings.FirstOrDefaultAsync(l => l.Id == id, ct);
-        if (listing is null)
-            return NotFound();
-
-        if (listing.OwnerId != User.GetStudentId())
-            return Forbid();
-
-        if (listing.Status != ListingStatus.Open)
-            return Problem(
-                statusCode: StatusCodes.Status409Conflict,
-                title: "Only open listings can be cancelled.");
-
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-
-        listing.Status = ListingStatus.Cancelled;
-        await db.SaveChangesAsync(ct);
-
-        await db.SwapOffers
-            .Where(o => o.ListingId == id && o.Status == OfferStatus.Pending)
-            .ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, OfferStatus.Rejected), ct);
-
-        await transaction.CommitAsync(ct);
-        return NoContent();
-    }
+        => this.ToActionResult(await swaps.CancelListingAsync(id, User.GetStudentId(), ct));
 
     private async Task<ListingDetailDto?> LoadDetailAsync(int id, CancellationToken ct)
     {

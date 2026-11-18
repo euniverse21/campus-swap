@@ -1,5 +1,6 @@
 using CampusSwap.Api.Data;
 using CampusSwap.Api.Entities;
+using CampusSwap.Api.Features.Swaps;
 using CampusSwap.Api.Features.Verification;
 using CampusSwap.Api.Infrastructure.Http;
 using CampusSwap.Api.Infrastructure.Security;
@@ -14,7 +15,7 @@ namespace CampusSwap.Api.Features.Offers;
 // Every offer endpoint needs a verified student
 [ApiController]
 [Authorize]
-public class OffersController(AppDbContext db, PhotoUploader photoUploader) : ControllerBase
+public class OffersController(AppDbContext db, PhotoUploader photoUploader, SwapService swaps) : ControllerBase
 {
     private const int MaxPhotos = 3;
     private const long MaxRequestBytes = 20 * 1024 * 1024;
@@ -149,23 +150,17 @@ public class OffersController(AppDbContext db, PhotoUploader photoUploader) : Co
     // The student who sent a pending offer can take it back
     [HttpPost("api/offers/{id:int}/withdraw")]
     public async Task<IActionResult> Withdraw(int id, CancellationToken ct)
-    {
-        var offer = await db.SwapOffers.FirstOrDefaultAsync(o => o.Id == id, ct);
-        if (offer is null)
-            return NotFound();
+        => this.ToActionResult(await swaps.WithdrawOfferAsync(id, User.GetStudentId(), ct));
 
-        if (offer.OfferedById != User.GetStudentId())
-            return Forbid();
+    // Listing owner accepts this offer (see SwapService for the locking and the transaction)
+    [HttpPost("api/offers/{id:int}/accept")]
+    public async Task<IActionResult> Accept(int id, CancellationToken ct)
+        => this.ToActionResult(await swaps.AcceptOfferAsync(id, User.GetStudentId(), ct));
 
-        if (offer.Status != OfferStatus.Pending)
-            return Problem(
-                statusCode: StatusCodes.Status409Conflict,
-                title: "Only pending offers can be withdrawn.");
-
-        offer.Status = OfferStatus.Withdrawn;
-        await db.SaveChangesAsync(ct);
-        return NoContent();
-    }
+    // Listing owner declines this offer
+    [HttpPost("api/offers/{id:int}/reject")]
+    public async Task<IActionResult> Reject(int id, CancellationToken ct)
+        => this.ToActionResult(await swaps.RejectOfferAsync(id, User.GetStudentId(), ct));
 
     private IQueryable<SwapOffer> OffersWithDetails()
         => db.SwapOffers

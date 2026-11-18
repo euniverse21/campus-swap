@@ -24,6 +24,8 @@ export function ListingDetailPage() {
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  // Bumped after an offer action so the listing (status, offer count) is fetched again
+  const [version, setVersion] = useState(0)
 
   // Reload when the id changes, or when the student signs in/out (isMine depends on it)
   useEffect(() => {
@@ -47,7 +49,7 @@ export function ListingDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [id, student?.id])
+  }, [id, student?.id, version])
 
   async function handleCancel() {
     if (!result?.listing) return
@@ -180,7 +182,7 @@ export function ListingDetailPage() {
                 </button>
               ))
             ) : student ? (
-              <ListingOffersSection listing={listing} />
+              <ListingOffersSection listing={listing} onListingChanged={() => setVersion((v) => v + 1)} />
             ) : (
               <Link
                 to={`/verify?next=${encodeURIComponent(`/listings/${listing.id}`)}`}
@@ -193,8 +195,10 @@ export function ListingDetailPage() {
         </section>
       </div>
 
-      {/* The owner sees all offers below the listing. "key" reloads them after cancelling. */}
-      {listing.isMine && <ListingOffersSection key={listing.status} listing={listing} />}
+      {/* The owner sees all offers below the listing */}
+      {listing.isMine && (
+        <ListingOffersSection listing={listing} onListingChanged={() => setVersion((v) => v + 1)} />
+      )}
     </main>
   )
 }

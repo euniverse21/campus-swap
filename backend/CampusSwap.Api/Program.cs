@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using CampusSwap.Api.Data;
+using CampusSwap.Api.Features.Swaps;
 using CampusSwap.Api.Features.Verification;
 using CampusSwap.Api.Infrastructure.Email;
 using CampusSwap.Api.Infrastructure.Security;
@@ -35,6 +36,9 @@ builder.Services.AddScoped<IEmailSender, ConsoleEmailSender>();
 // Photo storage: local "uploads" folder during development (Azure Blob later)
 builder.Services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
 builder.Services.AddScoped<PhotoUploader>();
+
+// Swap actions (accept, reject, withdraw, cancel) with row locking + transactions
+builder.Services.AddScoped<SwapService>();
 
 // Authentication: "Authorization: Bearer <session token>" identifies the student
 builder.Services

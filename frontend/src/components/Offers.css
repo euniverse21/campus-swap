@@ -153,3 +153,30 @@
   display: flex;
   gap: 8px;
 }
+
+/* ---------- Accept / decline ---------- */
+
+.offers-section__accepted {
+  border: 1px solid #f5c88a;
+  background: #fffaf2;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.offers-section__accepted .offers-section__message {
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.offers-section__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.offers-section__confirm span {
+  flex-basis: 100%;
+}
