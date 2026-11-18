@@ -49,7 +49,8 @@ export function SwapPanel({ offer, role, otherName, onChanged }: SwapPanelProps)
         </ol>
       )}
 
-      <ChatBox offerId={offer.id} canSend={!isCompleted} />
+      {/* Chat stays open after completion too (e.g. "Thanks!"), matching the API */}
+      <ChatBox offerId={offer.id} canSend />
 
       <p className="swap-panel__safety">
         Stay safe: meet in a busy place on campus and don&apos;t share your home address.
