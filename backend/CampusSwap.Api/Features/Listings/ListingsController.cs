@@ -109,6 +109,66 @@ public class ListingsController(AppDbContext db, IPhotoStorage photoStorage) : C
         }
     }
 
+    // Browse open listings (anyone). Newest first, optional category filter and name search.
+    [HttpGet]
+    public async Task<ActionResult<PagedResult<ListingSummaryDto>>> Browse(
+        [FromQuery] ItemCategory? category,
+        [FromQuery] string? search,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var query = db.Listings
+            .AsNoTracking()
+            .Where(l => l.Status == ListingStatus.Open);
+
+        if (category is not null)
+            query = query.Where(l => l.Item.Category == category.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{search.Trim()}%";
+            query = query.Where(l => EF.Functions.ILike(l.Item.Name, pattern));
+        }
+
+        var totalCount = await query.CountAsync(ct);
+
+        var rows = await query
+            .OrderByDescending(l => l.CreatedAt)
+            .ThenByDescending(l => l.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(l => new
+            {
+                l.Id,
+                l.Item.Name,
+                l.Item.Category,
+                l.Item.Condition,
+                l.WantedDescription,
+                OwnerName = l.Owner.DisplayName,
+                PhotoUrls = l.Item.Photos.OrderBy(p => p.SortOrder).Select(p => p.Url).ToList(),
+                l.CreatedAt,
+            })
+            .ToListAsync(ct);
+
+        var items = rows
+            .Select(r => new ListingSummaryDto(
+                r.Id,
+                r.Name,
+                r.Category.ToString(),
+                r.Condition.ToString(),
+                r.WantedDescription,
+                r.OwnerName,
+                r.PhotoUrls.Select(ToAbsoluteUrl).ToList(),
+                r.CreatedAt))
+            .ToList();
+
+        return new PagedResult<ListingSummaryDto>(items, page, pageSize, totalCount);
+    }
+
     // Anyone can view a listing; IsMine is true when the viewer is the owner
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ListingDetailDto>> GetById(int id, CancellationToken ct)

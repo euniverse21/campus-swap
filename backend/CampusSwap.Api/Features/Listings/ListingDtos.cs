@@ -47,3 +47,20 @@ public record ListingDetailDto(
     StudentDto Owner,
     ItemDto Item,
     bool IsMine);
+
+// One card in the browse grid (field names match the frontend's mock data)
+public record ListingSummaryDto(
+    int Id,
+    string Name,
+    string Category,
+    string Condition,
+    string WantedDescription,
+    string OwnerName,
+    IReadOnlyList<string> PhotoUrls,
+    DateTime CreatedAt);
+
+public record PagedResult<T>(
+    IReadOnlyList<T> Items,
+    int Page,
+    int PageSize,
+    int TotalCount);
