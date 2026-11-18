@@ -66,6 +66,7 @@ export interface ListingDetail {
     status: string
     photoUrls: string[]
   }
+  pendingOfferCount: number
   isMine: boolean
 }
 
@@ -74,4 +75,40 @@ export interface PagedResult<T> {
   page: number
   pageSize: number
   totalCount: number
+}
+
+export type OfferStatus = 'Pending' | 'Accepted' | 'Rejected' | 'Withdrawn' | 'Completed'
+
+export interface OfferedItem {
+  id: number
+  name: string
+  description: string
+  category: ItemCategory
+  condition: ItemCondition
+  photoUrls: string[]
+}
+
+export interface Offer {
+  id: number
+  listingId: number
+  status: OfferStatus
+  type: 'Item' | 'Service'
+  message: string | null
+  createdAt: string
+  offeredBy: Student
+  offeredItem: OfferedItem | null
+  isMine: boolean
+}
+
+export interface ListingBrief {
+  id: number
+  name: string
+  photoUrl: string | null
+  status: ListingStatus
+  ownerName: string
+}
+
+export interface SentOffer {
+  offer: Offer
+  listing: ListingBrief
 }

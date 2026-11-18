@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
+import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { createListing } from '../api/listings'
 import { ITEM_CATEGORIES, ITEM_CONDITIONS } from '../api/types'
 import type { ItemCategory, ItemCondition } from '../api/types'
-import { resizeImage } from '../utils/resizeImage'
+import { PhotoPicker } from '../components/PhotoPicker'
 
 const MAX_PHOTOS = 5
-const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 export function CreateListingPage() {
   const navigate = useNavigate()
@@ -22,38 +21,6 @@ export function CreateListingPage() {
   const [error, setError] = useState<string | null>(null)
   const [isPreparingPhotos, setIsPreparingPhotos] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Temporary browser URLs so the selected photos can be previewed before upload
-  const previews = useMemo(() => photos.map((photo) => URL.createObjectURL(photo)), [photos])
-  useEffect(() => {
-    return () => previews.forEach((url) => URL.revokeObjectURL(url))
-  }, [previews])
-
-  async function handlePhotosSelected(e: ChangeEvent<HTMLInputElement>) {
-    const selected = Array.from(e.target.files ?? [])
-    e.target.value = '' // lets the same file be picked again after removing it
-    setError(null)
-
-    const room = MAX_PHOTOS - photos.length
-    if (selected.length > room) setError(`You can add up to ${MAX_PHOTOS} photos.`)
-
-    setIsPreparingPhotos(true)
-    const accepted: File[] = []
-    for (const file of selected.slice(0, room)) {
-      if (!ACCEPTED_TYPES.includes(file.type)) {
-        setError('Only JPEG, PNG or WebP images are allowed.')
-        continue
-      }
-      accepted.push(await resizeImage(file))
-    }
-    setIsPreparingPhotos(false)
-
-    setPhotos((current) => [...current, ...accepted].slice(0, MAX_PHOTOS))
-  }
-
-  function removePhoto(index: number) {
-    setPhotos((current) => current.filter((_, i) => i !== index))
-  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -97,34 +64,13 @@ export function CreateListingPage() {
             <span>
               Photos <small>(1–{MAX_PHOTOS}, the first one is the cover)</small>
             </span>
-            <div className="photo-picker">
-              {previews.map((url, index) => (
-                <div key={url} className="photo-picker__item">
-                  <img src={url} alt={`Photo ${index + 1}`} />
-                  <button
-                    type="button"
-                    className="photo-picker__remove"
-                    onClick={() => removePhoto(index)}
-                    aria-label={`Remove photo ${index + 1}`}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-
-              {photos.length < MAX_PHOTOS && (
-                <label className="photo-picker__add">
-                  {isPreparingPhotos ? 'Preparing…' : '+ Add photos'}
-                  <input
-                    type="file"
-                    accept={ACCEPTED_TYPES.join(',')}
-                    multiple
-                    onChange={handlePhotosSelected}
-                    disabled={isPreparingPhotos}
-                  />
-                </label>
-              )}
-            </div>
+            <PhotoPicker
+              photos={photos}
+              onChange={setPhotos}
+              maxPhotos={MAX_PHOTOS}
+              onError={setError}
+              onBusyChange={setIsPreparingPhotos}
+            />
           </fieldset>
 
           <label className="form-field">

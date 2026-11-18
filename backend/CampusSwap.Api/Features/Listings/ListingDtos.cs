@@ -46,6 +46,7 @@ public record ListingDetailDto(
     DateTime CreatedAt,
     StudentDto Owner,
     ItemDto Item,
+    int PendingOfferCount,
     bool IsMine);
 
 // One card in the browse grid (field names match the frontend's mock data)

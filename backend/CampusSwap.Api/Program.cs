@@ -34,6 +34,7 @@ builder.Services.AddScoped<IEmailSender, ConsoleEmailSender>();
 
 // Photo storage: local "uploads" folder during development (Azure Blob later)
 builder.Services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
+builder.Services.AddScoped<PhotoUploader>();
 
 // Authentication: "Authorization: Bearer <session token>" identifies the student
 builder.Services

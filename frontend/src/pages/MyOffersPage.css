@@ -1,0 +1,59 @@
+.page--medium {
+  width: min(760px, 100%);
+}
+
+.page-title {
+  margin: 0 0 20px;
+  font-size: 28px;
+  color: var(--text-h);
+}
+
+.my-offers {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.my-offers__row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.my-offers__listing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.my-offers__listing:hover strong {
+  color: var(--accent);
+}
+
+.my-offers__listing-photo {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--muted-bg);
+  flex-shrink: 0;
+}
+
+.my-offers__listing-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.my-offers__for {
+  color: var(--text-muted);
+  margin-right: 6px;
+}
+
+.my-offers__owner {
+  color: var(--text-muted);
+  margin-left: 6px;
+}

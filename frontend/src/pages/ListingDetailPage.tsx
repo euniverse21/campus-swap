@@ -5,6 +5,7 @@ import { cancelListing, getListing } from '../api/listings'
 import { ITEM_CONDITIONS } from '../api/types'
 import type { ListingDetail } from '../api/types'
 import { useAuth } from '../auth/useAuth'
+import { ListingOffersSection } from '../components/ListingOffersSection'
 import './ListingDetailPage.css'
 
 interface LoadResult {
@@ -122,6 +123,8 @@ export function ListingDetailPage() {
           <h1>{listing.item.name}</h1>
           <p className="listing-detail__meta">
             {conditionLabel} · listed by <strong>{listing.owner.displayName}</strong>
+            {listing.pendingOfferCount > 0 &&
+              ` · ${listing.pendingOfferCount} offer${listing.pendingOfferCount === 1 ? '' : 's'}`}
           </p>
 
           <div className="listing-detail__wanted">
@@ -177,9 +180,7 @@ export function ListingDetailPage() {
                 </button>
               ))
             ) : student ? (
-              <button type="button" className="btn btn--primary btn--block" disabled>
-                Make an offer (coming soon)
-              </button>
+              <ListingOffersSection listing={listing} />
             ) : (
               <Link
                 to={`/verify?next=${encodeURIComponent(`/listings/${listing.id}`)}`}
@@ -191,6 +192,9 @@ export function ListingDetailPage() {
           </div>
         </section>
       </div>
+
+      {/* The owner sees all offers below the listing. "key" reloads them after cancelling. */}
+      {listing.isMine && <ListingOffersSection key={listing.status} listing={listing} />}
     </main>
   )
 }

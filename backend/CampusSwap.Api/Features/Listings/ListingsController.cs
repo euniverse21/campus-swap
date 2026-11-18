@@ -1,6 +1,7 @@
 using CampusSwap.Api.Data;
 using CampusSwap.Api.Entities;
 using CampusSwap.Api.Features.Verification;
+using CampusSwap.Api.Infrastructure.Http;
 using CampusSwap.Api.Infrastructure.Security;
 using CampusSwap.Api.Infrastructure.Storage;
 using Microsoft.AspNetCore.Authorization;
@@ -11,11 +12,10 @@ namespace CampusSwap.Api.Features.Listings;
 
 [ApiController]
 [Route("api/listings")]
-public class ListingsController(AppDbContext db, IPhotoStorage photoStorage) : ControllerBase
+public class ListingsController(AppDbContext db, PhotoUploader photoUploader) : ControllerBase
 {
     private const int MaxPhotos = 5;
-    private const long MaxPhotoBytes = 5 * 1024 * 1024;        // 5 MB per photo
-    private const long MaxRequestBytes = 30 * 1024 * 1024;     // whole form
+    private const long MaxRequestBytes = 30 * 1024 * 1024; // whole form
 
     // Create a listing: verified students only
     [Authorize]
@@ -24,88 +24,53 @@ public class ListingsController(AppDbContext db, IPhotoStorage photoStorage) : C
     [RequestFormLimits(MultipartBodyLengthLimit = MaxRequestBytes)]
     public async Task<ActionResult<ListingDetailDto>> Create([FromForm] CreateListingForm form, CancellationToken ct)
     {
-        if (form.Photos.Count is 0 or > MaxPhotos)
+        // 1) Check every photo BEFORE saving anything
+        var (photos, photoError) = await photoUploader.ValidateAsync(form.Photos, MaxPhotos, ct);
+        if (photos is null)
         {
-            ModelState.AddModelError(nameof(form.Photos), $"Please add between 1 and {MaxPhotos} photos.");
+            ModelState.AddModelError(nameof(form.Photos), photoError ?? "Invalid photos.");
             return ValidationProblem(ModelState);
         }
+        using var validPhotos = photos;
 
-        // 1) Check every photo BEFORE saving anything
-        var photos = new List<(MemoryStream Content, string Extension)>();
+        // 2) Save photos, then the item + listing in one database save
+        var studentId = User.GetStudentId();
+        var savedUrls = await photoUploader.SaveAsync(validPhotos, ct);
         try
         {
-            foreach (var photo in form.Photos)
+            var item = new Item
             {
-                if (photo.Length == 0 || photo.Length > MaxPhotoBytes)
-                {
-                    ModelState.AddModelError(nameof(form.Photos), "Each photo must be smaller than 5 MB.");
-                    return ValidationProblem(ModelState);
-                }
+                OwnerId = studentId,
+                Name = form.Name.Trim(),
+                Description = form.Description?.Trim() ?? string.Empty,
+                Category = form.Category!.Value,
+                Condition = form.Condition!.Value,
+                Photos = savedUrls
+                    .Select((url, index) => new ItemPhoto { Url = url, SortOrder = index })
+                    .ToList(),
+            };
 
-                var buffer = new MemoryStream();
-                await photo.CopyToAsync(buffer, ct);
-                photos.Add((buffer, string.Empty));
-
-                var headerLength = (int)Math.Min(buffer.Length, ImageSignature.HeaderLength);
-                var extension = ImageSignature.DetectExtension(buffer.GetBuffer().AsSpan(0, headerLength));
-                if (extension is null)
-                {
-                    ModelState.AddModelError(nameof(form.Photos), "Only JPEG, PNG or WebP images are allowed.");
-                    return ValidationProblem(ModelState);
-                }
-
-                buffer.Position = 0;
-                photos[photos.Count - 1] = (buffer, extension);
-            }
-
-            // 2) Save photos, then the item + listing
-            var studentId = User.GetStudentId();
-            var savedUrls = new List<string>();
-            try
+            var listing = new Listing
             {
-                foreach (var (content, extension) in photos)
-                    savedUrls.Add(await photoStorage.SaveAsync(content, extension, ct));
+                Item = item,
+                OwnerId = studentId,
+                WantedDescription = form.WantedDescription.Trim(),
+                MeetingLocation = string.IsNullOrWhiteSpace(form.MeetingLocation)
+                    ? null
+                    : form.MeetingLocation.Trim(),
+            };
 
-                var item = new Item
-                {
-                    OwnerId = studentId,
-                    Name = form.Name.Trim(),
-                    Description = form.Description?.Trim() ?? string.Empty,
-                    Category = form.Category!.Value,
-                    Condition = form.Condition!.Value,
-                    Photos = savedUrls
-                        .Select((url, index) => new ItemPhoto { Url = url, SortOrder = index })
-                        .ToList(),
-                };
+            db.Listings.Add(listing);
+            await db.SaveChangesAsync(ct);
 
-                var listing = new Listing
-                {
-                    Item = item,
-                    OwnerId = studentId,
-                    WantedDescription = form.WantedDescription.Trim(),
-                    MeetingLocation = string.IsNullOrWhiteSpace(form.MeetingLocation)
-                        ? null
-                        : form.MeetingLocation.Trim(),
-                };
-
-                db.Listings.Add(listing);
-                await db.SaveChangesAsync(ct);
-
-                var created = await LoadDetailAsync(listing.Id, ct);
-                return CreatedAtAction(nameof(GetById), new { id = listing.Id }, created);
-            }
-            catch
-            {
-                // If the database save fails, remove the photo files we just wrote
-                foreach (var url in savedUrls)
-                    await photoStorage.DeleteAsync(url, CancellationToken.None);
-                throw;
-            }
+            var created = await LoadDetailAsync(listing.Id, ct);
+            return CreatedAtAction(nameof(GetById), new { id = listing.Id }, created);
         }
-        finally
+        catch
         {
-            foreach (var (content, _) in photos)
-                content.Dispose();
+            // If the database save fails, remove the photo files we just wrote
+            await photoUploader.DeleteAsync(savedUrls);
+            throw;
         }
     }
 
@@ -162,7 +127,7 @@ public class ListingsController(AppDbContext db, IPhotoStorage photoStorage) : C
                 r.Condition.ToString(),
                 r.WantedDescription,
                 r.OwnerName,
-                r.PhotoUrls.Select(ToAbsoluteUrl).ToList(),
+                r.PhotoUrls.Select(url => Request.ToAbsoluteUrl(url)).ToList(),
                 r.CreatedAt))
             .ToList();
 
@@ -221,9 +186,12 @@ public class ListingsController(AppDbContext db, IPhotoStorage photoStorage) : C
         if (listing is null)
             return null;
 
+        var pendingOfferCount = await db.SwapOffers
+            .CountAsync(o => o.ListingId == id && o.Status == OfferStatus.Pending, ct);
+
         var photoUrls = listing.Item.Photos
             .OrderBy(p => p.SortOrder)
-            .Select(p => ToAbsoluteUrl(p.Url))
+            .Select(p => Request.ToAbsoluteUrl(p.Url))
             .ToList();
 
         return new ListingDetailDto(
@@ -241,10 +209,7 @@ public class ListingsController(AppDbContext db, IPhotoStorage photoStorage) : C
                 listing.Item.Condition.ToString(),
                 listing.Item.Status.ToString(),
                 photoUrls),
+            pendingOfferCount,
             IsMine: User.TryGetStudentId() == listing.OwnerId);
     }
-
-    // Local photos are stored as "/uploads/x.jpg"; the frontend needs the full address
-    private string ToAbsoluteUrl(string url)
-        => url.StartsWith('/') ? $"{Request.Scheme}://{Request.Host}{url}" : url;
 }

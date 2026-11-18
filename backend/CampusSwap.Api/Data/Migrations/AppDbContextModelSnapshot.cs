@@ -324,6 +324,10 @@ namespace CampusSwap.Api.Data.Migrations
 
                     b.HasIndex("OfferedItemId");
 
+                    b.HasIndex("ListingId", "OfferedById")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Pending'");
+
                     b.ToTable("SwapOffers");
                 });
 

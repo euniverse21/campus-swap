@@ -5,6 +5,7 @@ import { RequireStudent } from './components/RequireStudent'
 import { CreateListingPage } from './pages/CreateListingPage'
 import { ListingDetailPage } from './pages/ListingDetailPage'
 import { ListingsPage } from './pages/ListingsPage'
+import { MyOffersPage } from './pages/MyOffersPage'
 import { VerifyPage } from './pages/VerifyPage'
 
 function App() {
@@ -24,6 +25,14 @@ function App() {
             }
           />
           <Route path="/listings/:id" element={<ListingDetailPage />} />
+          <Route
+            path="/offers"
+            element={
+              <RequireStudent>
+                <MyOffersPage />
+              </RequireStudent>
+            }
+          />
           <Route path="*" element={<p className="page-message">Page not found.</p>} />
         </Routes>
       </AuthProvider>

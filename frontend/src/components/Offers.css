@@ -1,0 +1,155 @@
+/* ---------- Offer card ---------- */
+
+.offer-card {
+  display: flex;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: left;
+}
+
+.offer-card--withdrawn,
+.offer-card--rejected {
+  opacity: 0.6;
+}
+
+.offer-card__photo {
+  flex: 0 0 96px;
+  height: 96px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--muted-bg);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.offer-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.offer-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.offer-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.offer-card__top h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-h);
+}
+
+.offer-card__meta,
+.offer-card__description,
+.offer-card__message {
+  margin: 0;
+  font-size: 14px;
+}
+
+.offer-card__meta {
+  color: var(--text-muted);
+}
+
+.offer-card__message {
+  font-style: italic;
+}
+
+.offer-card__thumbs {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.offer-card__thumbs img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.offer-card__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ---------- Offers section on the listing page ---------- */
+
+.offers-section {
+  margin-top: 24px;
+}
+
+.offers-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: var(--text-h);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.offers-section__count {
+  font-size: 13px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+
+.offers-section__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.offers-section__message {
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.offers-section__past {
+  margin-top: 16px;
+}
+
+.offers-section__past summary {
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* ---------- Offer form ---------- */
+
+.offer-form {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--surface);
+}
+
+.offer-form__hint {
+  margin: 0;
+  font-size: 14px;
+}
+
+.offer-form__buttons {
+  display: flex;
+  gap: 8px;
+}

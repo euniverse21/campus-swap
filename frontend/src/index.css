@@ -258,3 +258,43 @@ img {
 .photo-picker__add input {
   display: none;
 }
+
+/* ---------- Status badges ---------- */
+
+.status-badge {
+  display: inline-block;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--muted-bg);
+  color: var(--text-h);
+}
+
+.status-badge--pending {
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.status-badge--accepted,
+.status-badge--reserved {
+  background: #fff4e5;
+  color: #b54708;
+}
+
+.status-badge--completed {
+  background: #e7f6ec;
+  color: #067647;
+}
+
+.status-badge--rejected,
+.status-badge--cancelled {
+  background: #fde8e8;
+  color: #b42318;
+}
+
+.status-badge--withdrawn {
+  background: var(--muted-bg);
+  color: var(--text-muted);
+}

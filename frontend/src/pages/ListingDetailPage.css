@@ -123,28 +123,6 @@
   flex-basis: 100%;
 }
 
-.status-badge {
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 12px;
-  border-radius: 999px;
-  margin: 0 0 12px !important;
-  background: var(--muted-bg);
-  color: var(--text-h);
-}
-
-.status-badge--cancelled {
-  background: #fde8e8;
-  color: #b42318;
-}
-
-.status-badge--reserved {
-  background: #fff4e5;
-  color: #b54708;
-}
-
-.status-badge--completed {
-  background: #e7f6ec;
-  color: #067647;
+.listing-detail__info .status-badge {
+  margin-bottom: 12px;
 }

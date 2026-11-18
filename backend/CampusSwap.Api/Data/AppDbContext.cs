@@ -113,6 +113,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(o => o.ListingId)
              .IsUnique()
              .HasFilter("\"Status\" IN ('Accepted', 'Completed')");
+
+            // Business rule: a student can have only one pending offer per listing
+            e.HasIndex(o => new { o.ListingId, o.OfferedById })
+             .IsUnique()
+             .HasFilter("\"Status\" = 'Pending'");
         });
 
         builder.Entity<ChatMessage>(e =>
