@@ -21,6 +21,12 @@ export function setToken(token: string | null): void {
   }
 }
 
+// ASP.NET Core error body (RFC 7807 "problem details")
+interface ProblemDetails {
+  title?: string
+  errors?: Record<string, string[]>
+}
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -46,8 +52,10 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (!response.ok) {
     let message = `Request failed (${response.status})`
     try {
-      const problem = await response.json()
-      message = problem.title ?? message
+      const problem = (await response.json()) as ProblemDetails
+      // Validation errors: show the first field message (e.g. "Please use your university email address.")
+      const firstFieldError = problem.errors ? Object.values(problem.errors).flat()[0] : undefined
+      message = firstFieldError ?? problem.title ?? message
     } catch {
       // Empty or non-JSON error body: keep the default message
     }

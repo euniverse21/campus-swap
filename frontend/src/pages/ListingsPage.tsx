@@ -42,7 +42,7 @@ export function ListingsPage() {
   return (
     <main className="listings-page">
       <header className="listings-page__header">
-        <h1>Campus Swap</h1>
+        <h1>Find something to swap</h1>
         <p>Swap what you don&apos;t need for what you do — no money involved.</p>
       </header>
 

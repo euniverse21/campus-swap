@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type { ListingSummary } from '../api/types'
 import './ItemCard.css'
 
@@ -9,7 +10,7 @@ export function ItemCard({ listing }: ItemCardProps) {
   const coverPhoto = listing.photoUrls[0]
 
   return (
-    <article className="item-card">
+    <Link to={`/listings/${listing.id}`} className="item-card">
       <div className="item-card__photo">
         {coverPhoto ? (
           <img src={coverPhoto} alt={listing.name} loading="lazy" />
@@ -26,6 +27,6 @@ export function ItemCard({ listing }: ItemCardProps) {
         </p>
         <p className="item-card__owner">by {listing.ownerName}</p>
       </div>
-    </article>
+    </Link>
   )
 }
