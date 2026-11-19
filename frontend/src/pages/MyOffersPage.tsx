@@ -3,6 +3,8 @@ import { Link } from 'react-router'
 import { getMyOffers, withdrawOffer } from '../api/offers'
 import type { SentOffer } from '../api/types'
 import { OfferCard } from '../components/OfferCard'
+import { describeError } from '../i18n/describeError'
+import { useLanguage } from '../i18n/useLanguage'
 import './MyOffersPage.css'
 
 interface LoadResult {
@@ -13,6 +15,7 @@ interface LoadResult {
 
 // Every offer I have sent, with the listing it was sent to
 export function MyOffersPage() {
+  const { t, tRich } = useLanguage()
   const [version, setVersion] = useState(0)
   const [result, setResult] = useState<LoadResult | null>(null)
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null)
@@ -27,14 +30,14 @@ export function MyOffersPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setResult({ version, offers: [], error: err instanceof Error ? err.message : 'Could not load offers.' })
+          setResult({ version, offers: [], error: describeError(err, t, 'offers.loadError') })
         }
       })
 
     return () => {
       cancelled = true
     }
-  }, [version])
+  }, [version, t])
 
   async function handleWithdraw(offerId: number) {
     setActionError(null)
@@ -43,7 +46,7 @@ export function MyOffersPage() {
       await withdrawOffer(offerId)
       setVersion((v) => v + 1)
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not withdraw the offer.')
+      setActionError(describeError(err, t, 'myOffers.withdrawError'))
     } finally {
       setWithdrawingId(null)
     }
@@ -51,16 +54,16 @@ export function MyOffersPage() {
 
   return (
     <main className="page page--medium">
-      <h1 className="page-title">My offers</h1>
+      <h1 className="page-title">{t('nav.myOffers')}</h1>
       {actionError && <p className="form-error">{actionError}</p>}
 
       {!result || result.version !== version ? (
-        <p className="page-message">Loading…</p>
+        <p className="page-message">{t('common.loading')}</p>
       ) : result.error ? (
         <p className="form-error">{result.error}</p>
       ) : result.offers.length === 0 ? (
         <p className="page-message">
-          You haven&apos;t sent any offers yet. <Link to="/">Find something to swap →</Link>
+          {tRich('myOffers.empty', { link: <Link to="/">{t('myOffers.emptyLink')}</Link> })}
         </p>
       ) : (
         <div className="my-offers">
@@ -71,9 +74,9 @@ export function MyOffersPage() {
                   {listing.photoUrl && <img src={listing.photoUrl} alt={listing.name} />}
                 </div>
                 <div>
-                  <span className="my-offers__for">For</span>
+                  <span className="my-offers__for">{t('myOffers.for')}</span>
                   <strong>{listing.name}</strong>
-                  <span className="my-offers__owner">by {listing.ownerName}</span>
+                  <span className="my-offers__owner">{t('common.byName', { name: listing.ownerName })}</span>
                 </div>
               </Link>
 
@@ -82,7 +85,7 @@ export function MyOffersPage() {
                 actions={
                   offer.status === 'Accepted' ? (
                     <Link to={`/listings/${listing.id}`} className="btn btn--primary">
-                      Open chat & swap details →
+                      {t('myOffers.openChat')}
                     </Link>
                   ) : (
                     offer.status === 'Pending' && (
@@ -92,7 +95,7 @@ export function MyOffersPage() {
                       onClick={() => handleWithdraw(offer.id)}
                       disabled={withdrawingId === offer.id}
                     >
-                      {withdrawingId === offer.id ? 'Withdrawing…' : 'Withdraw offer'}
+                      {withdrawingId === offer.id ? t('offers.withdrawing') : t('offers.withdraw')}
                     </button>
                     )
                   )

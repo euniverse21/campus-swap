@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { ApiError } from '../api/client'
 import { cancelListing, getListing } from '../api/listings'
-import { ITEM_CONDITIONS } from '../api/types'
 import type { ListingDetail } from '../api/types'
 import { useAuth } from '../auth/useAuth'
 import { ListingOffersSection } from '../components/ListingOffersSection'
+import { describeError } from '../i18n/describeError'
+import { useLanguage } from '../i18n/useLanguage'
 import './ListingDetailPage.css'
 
 interface LoadResult {
@@ -16,6 +17,7 @@ interface LoadResult {
 
 export function ListingDetailPage() {
   const { student } = useAuth()
+  const { t, tRich } = useLanguage()
   const params = useParams()
   const id = Number(params.id)
 
@@ -38,18 +40,14 @@ export function ListingDetailPage() {
       .catch((err: unknown) => {
         if (cancelled) return
         const message =
-          err instanceof ApiError && err.status === 404
-            ? 'This listing does not exist.'
-            : err instanceof Error
-              ? err.message
-              : 'Something went wrong.'
+          err instanceof ApiError && err.status === 404 ? t('detail.notFound') : describeError(err, t)
         setResult({ id, listing: null, error: message })
       })
 
     return () => {
       cancelled = true
     }
-  }, [id, student?.id, version])
+  }, [id, student?.id, version, t])
 
   async function handleCancel() {
     if (!result?.listing) return
@@ -60,21 +58,21 @@ export function ListingDetailPage() {
       setResult({ ...result, listing: { ...result.listing, status: 'Cancelled' } })
       setIsConfirmingCancel(false)
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Could not cancel the listing.')
+      setActionError(describeError(err, t, 'detail.cancelError'))
     } finally {
       setIsCancelling(false)
     }
   }
 
   // The saved result belongs to another id (or nothing loaded yet): still loading
-  if (!result || result.id !== id) return <p className="page-message">Loading…</p>
+  if (!result || result.id !== id) return <p className="page-message">{t('common.loading')}</p>
 
   if (!result.listing) {
     return (
       <main className="page">
         <p className="page-message">{result.error}</p>
         <p className="page-message">
-          <Link to="/">← Back to all items</Link>
+          <Link to="/">{t('detail.backToAll')}</Link>
         </p>
       </main>
     )
@@ -83,19 +81,18 @@ export function ListingDetailPage() {
   const listing = result.listing
   const photos = listing.item.photoUrls
   const currentPhoto = photos[Math.min(photoIndex, photos.length - 1)]
-  const conditionLabel =
-    ITEM_CONDITIONS.find((c) => c.value === listing.item.condition)?.label ?? listing.item.condition
+  const offerCount = listing.pendingOfferCount
 
   return (
     <main className="page">
       <Link to="/" className="back-link">
-        ← All items
+        {t('detail.allItems')}
       </Link>
 
       <div className="listing-detail">
         <section className="listing-detail__gallery">
           <div className="listing-detail__main-photo">
-            {currentPhoto ? <img src={currentPhoto} alt={listing.item.name} /> : <span>No photo</span>}
+            {currentPhoto ? <img src={currentPhoto} alt={listing.item.name} /> : <span>{t('common.noPhoto')}</span>}
           </div>
           {photos.length > 1 && (
             <div className="listing-detail__thumbs">
@@ -105,7 +102,7 @@ export function ListingDetailPage() {
                   type="button"
                   className={index === photoIndex ? 'is-active' : ''}
                   onClick={() => setPhotoIndex(index)}
-                  aria-label={`Show photo ${index + 1}`}
+                  aria-label={t('detail.showPhoto', { n: index + 1 })}
                 >
                   <img src={url} alt="" />
                 </button>
@@ -117,33 +114,36 @@ export function ListingDetailPage() {
         <section className="listing-detail__info">
           {listing.status !== 'Open' && (
             <p className={`status-badge status-badge--${listing.status.toLowerCase()}`}>
-              {listing.status}
+              {t(`listingStatus.${listing.status}`)}
             </p>
           )}
 
-          <span className="item-card__category">{listing.item.category}</span>
+          <span className="item-card__category">{t(`category.${listing.item.category}`)}</span>
           <h1>{listing.item.name}</h1>
           <p className="listing-detail__meta">
-            {conditionLabel} · listed by <strong>{listing.owner.displayName}</strong>
-            {listing.pendingOfferCount > 0 &&
-              ` · ${listing.pendingOfferCount} offer${listing.pendingOfferCount === 1 ? '' : 's'}`}
+            {tRich('detail.meta', {
+              condition: t(`condition.${listing.item.condition}`),
+              name: <strong>{listing.owner.displayName}</strong>,
+            })}
+            {offerCount > 0 &&
+              ` · ${t(offerCount === 1 ? 'detail.offerCount.one' : 'detail.offerCount.other', { count: offerCount })}`}
           </p>
 
           <div className="listing-detail__wanted">
-            <h2>Wants in return</h2>
+            <h2>{t('detail.wants')}</h2>
             <p>{listing.wantedDescription}</p>
           </div>
 
           {listing.item.description && (
             <div className="listing-detail__section">
-              <h2>Description</h2>
+              <h2>{t('detail.description')}</h2>
               <p>{listing.item.description}</p>
             </div>
           )}
 
           {listing.meetingLocation && (
             <div className="listing-detail__section">
-              <h2>Where to meet</h2>
+              <h2>{t('detail.meet')}</h2>
               <p>{listing.meetingLocation}</p>
             </div>
           )}
@@ -155,21 +155,21 @@ export function ListingDetailPage() {
               listing.status === 'Open' &&
               (isConfirmingCancel ? (
                 <div className="confirm-box">
-                  <p>Cancel this listing? Pending offers will be rejected.</p>
+                  <p>{t('detail.cancelConfirm')}</p>
                   <button
                     type="button"
                     className="btn btn--danger"
                     onClick={handleCancel}
                     disabled={isCancelling}
                   >
-                    {isCancelling ? 'Cancelling…' : 'Yes, cancel it'}
+                    {isCancelling ? t('detail.cancelling') : t('detail.yesCancel')}
                   </button>
                   <button
                     type="button"
                     className="btn btn--ghost"
                     onClick={() => setIsConfirmingCancel(false)}
                   >
-                    Keep it
+                    {t('detail.keep')}
                   </button>
                 </div>
               ) : (
@@ -178,7 +178,7 @@ export function ListingDetailPage() {
                   className="btn btn--ghost"
                   onClick={() => setIsConfirmingCancel(true)}
                 >
-                  Cancel listing
+                  {t('detail.cancelListing')}
                 </button>
               ))
             ) : student ? (
@@ -188,7 +188,7 @@ export function ListingDetailPage() {
                 to={`/verify?next=${encodeURIComponent(`/listings/${listing.id}`)}`}
                 className="btn btn--primary btn--block"
               >
-                Verify your student email to make an offer
+                {t('detail.verifyToOffer')}
               </Link>
             )}
           </div>

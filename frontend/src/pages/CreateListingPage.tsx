@@ -6,11 +6,14 @@ import { ITEM_CATEGORIES, ITEM_CONDITIONS } from '../api/types'
 import type { ItemCategory, ItemCondition } from '../api/types'
 import { GuidelinesConsent } from '../components/GuidelinesConsent'
 import { PhotoPicker } from '../components/PhotoPicker'
+import { describeError } from '../i18n/describeError'
+import { useLanguage } from '../i18n/useLanguage'
 
 const MAX_PHOTOS = 5
 
 export function CreateListingPage() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -26,7 +29,7 @@ export function CreateListingPage() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (photos.length === 0) {
-      setError('Please add at least one photo.')
+      setError(t('create.noPhoto'))
       return
     }
 
@@ -45,7 +48,7 @@ export function CreateListingPage() {
       const created = await createListing(form)
       navigate(`/listings/${created.id}`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setError(describeError(err, t))
       setIsSubmitting(false)
     }
   }
@@ -53,17 +56,15 @@ export function CreateListingPage() {
   return (
     <main className="page page--narrow">
       <div className="form-card">
-        <h1>List an item</h1>
-        <p className="form-card__intro">
-          Describe your item and what you&apos;d like in return. Other students will send you offers.
-        </p>
+        <h1>{t('create.title')}</h1>
+        <p className="form-card__intro">{t('create.intro')}</p>
 
         {error && <p className="form-error">{error}</p>}
 
         <form onSubmit={handleSubmit} className="form">
           <fieldset className="form-field">
             <span>
-              Photos <small>(1–{MAX_PHOTOS}, the first one is the cover)</small>
+              {t('create.photos')} <small>{t('create.photosHint', { max: MAX_PHOTOS })}</small>
             </span>
             <PhotoPicker
               photos={photos}
@@ -75,11 +76,11 @@ export function CreateListingPage() {
           </fieldset>
 
           <label className="form-field">
-            <span>Item name</span>
+            <span>{t('create.name')}</span>
             <input
               required
               maxLength={100}
-              placeholder="e.g. Database Systems textbook"
+              placeholder={t('create.namePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -87,36 +88,36 @@ export function CreateListingPage() {
 
           <div className="form-row">
             <label className="form-field">
-              <span>Category</span>
+              <span>{t('create.category')}</span>
               <select
                 required
                 value={category}
                 onChange={(e) => setCategory(e.target.value as ItemCategory)}
               >
                 <option value="" disabled>
-                  Choose…
+                  {t('common.choose')}
                 </option>
                 {ITEM_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {t(`category.${c}`)}
                   </option>
                 ))}
               </select>
             </label>
 
             <label className="form-field">
-              <span>Condition</span>
+              <span>{t('create.condition')}</span>
               <select
                 required
                 value={condition}
                 onChange={(e) => setCondition(e.target.value as ItemCondition)}
               >
                 <option value="" disabled>
-                  Choose…
+                  {t('common.choose')}
                 </option>
                 {ITEM_CONDITIONS.map((c) => (
                   <option key={c.value} value={c.value}>
-                    {c.label}
+                    {t(`condition.${c.value}`)}
                   </option>
                 ))}
               </select>
@@ -124,23 +125,23 @@ export function CreateListingPage() {
           </div>
 
           <label className="form-field">
-            <span>Description</span>
+            <span>{t('create.description')}</span>
             <textarea
               rows={3}
               maxLength={2000}
-              placeholder="Edition, size, any marks or damage…"
+              placeholder={t('create.descriptionPlaceholder')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
           </label>
 
           <label className="form-field">
-            <span>What would you like in return?</span>
+            <span>{t('create.wanted')}</span>
             <textarea
               required
               rows={2}
               maxLength={500}
-              placeholder="e.g. A winter jacket (size M), or open to offers"
+              placeholder={t('create.wantedPlaceholder')}
               value={wantedDescription}
               onChange={(e) => setWantedDescription(e.target.value)}
             />
@@ -148,11 +149,11 @@ export function CreateListingPage() {
 
           <label className="form-field">
             <span>
-              Where to meet <small>(optional)</small>
+              {t('create.meet')} <small>{t('common.optional')}</small>
             </span>
             <input
               maxLength={200}
-              placeholder="e.g. Flinders City Campus, level 1"
+              placeholder={t('create.meetPlaceholder')}
               value={meetingLocation}
               onChange={(e) => setMeetingLocation(e.target.value)}
             />
@@ -165,7 +166,7 @@ export function CreateListingPage() {
             className="btn btn--primary btn--block"
             disabled={isSubmitting || isPreparingPhotos}
           >
-            {isSubmitting ? 'Publishing…' : 'Publish listing'}
+            {isSubmitting ? t('create.publishing') : t('create.publish')}
           </button>
         </form>
       </div>

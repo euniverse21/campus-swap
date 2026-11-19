@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { getMyListings } from '../api/listings'
 import type { MyListing } from '../api/types'
+import { describeError } from '../i18n/describeError'
+import type { Translate } from '../i18n/LanguageContext'
+import { useLanguage } from '../i18n/useLanguage'
 import './MyListingsPage.css'
 
 interface LoadResult {
@@ -10,22 +13,25 @@ interface LoadResult {
 }
 
 // One line that tells the owner what to do next with this listing
-function nextStep(listing: MyListing): string {
+function nextStep(listing: MyListing, t: Translate): string {
+  const partner = listing.swapPartnerName ?? t('myListings.anotherStudent')
+  const count = listing.pendingOfferCount
   switch (listing.status) {
     case 'Open':
-      return listing.pendingOfferCount === 0
-        ? 'No offers yet'
-        : `${listing.pendingOfferCount} offer${listing.pendingOfferCount === 1 ? '' : 's'} waiting for you`
+      return count === 0
+        ? t('myListings.noOffers')
+        : t(count === 1 ? 'myListings.waiting.one' : 'myListings.waiting.other', { count })
     case 'Reserved':
-      return `Swapping with ${listing.swapPartnerName ?? 'another student'} — open the chat to arrange it`
+      return t('myListings.swapping', { name: partner })
     case 'Completed':
-      return `Swapped with ${listing.swapPartnerName ?? 'another student'}`
+      return t('myListings.swapped', { name: partner })
     default:
-      return 'Cancelled'
+      return t('listingStatus.Cancelled')
   }
 }
 
 function ListingRow({ listing }: { listing: MyListing }) {
+  const { t } = useLanguage()
   const needsAttention =
     (listing.status === 'Open' && listing.pendingOfferCount > 0) || listing.status === 'Reserved'
 
@@ -37,10 +43,10 @@ function ListingRow({ listing }: { listing: MyListing }) {
       <div className="my-listing__body">
         <div className="my-listing__top">
           <strong>{listing.name}</strong>
-          <span className={`status-badge status-badge--${listing.status.toLowerCase()}`}>{listing.status}</span>
+          <span className={`status-badge status-badge--${listing.status.toLowerCase()}`}>{t(`listingStatus.${listing.status}`)}</span>
         </div>
         <span className={`my-listing__next ${needsAttention ? 'my-listing__next--attention' : ''}`}>
-          {nextStep(listing)}
+          {nextStep(listing, t)}
         </span>
       </div>
     </Link>
@@ -48,6 +54,7 @@ function ListingRow({ listing }: { listing: MyListing }) {
 }
 
 export function MyListingsPage() {
+  const { t, tRich } = useLanguage()
   const [result, setResult] = useState<LoadResult | null>(null)
 
   useEffect(() => {
@@ -59,16 +66,16 @@ export function MyListingsPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setResult({ listings: [], error: err instanceof Error ? err.message : 'Could not load your listings.' })
+          setResult({ listings: [], error: describeError(err, t, 'myListings.loadError') })
         }
       })
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
-  if (!result) return <p className="page-message">Loading…</p>
+  if (!result) return <p className="page-message">{t('common.loading')}</p>
 
   const active = result.listings.filter((l) => l.status === 'Open' || l.status === 'Reserved')
   const past = result.listings.filter((l) => l.status === 'Completed' || l.status === 'Cancelled')
@@ -76,9 +83,9 @@ export function MyListingsPage() {
   return (
     <main className="page page--medium">
       <div className="my-listings__header">
-        <h1 className="page-title">My listings</h1>
+        <h1 className="page-title">{t('nav.myListings')}</h1>
         <Link to="/listings/new" className="btn btn--primary">
-          List an item
+          {t('nav.listItem')}
         </Link>
       </div>
 
@@ -86,13 +93,15 @@ export function MyListingsPage() {
 
       {!result.error && result.listings.length === 0 && (
         <p className="page-message">
-          You haven&apos;t listed anything yet. <Link to="/listings/new">List your first item →</Link>
+          {tRich('myListings.empty', {
+            link: <Link to="/listings/new">{t('myListings.emptyLink')}</Link>,
+          })}
         </p>
       )}
 
       {active.length > 0 && (
         <section className="my-listings__section">
-          <h2>Active</h2>
+          <h2>{t('myListings.active')}</h2>
           {active.map((listing) => (
             <ListingRow key={listing.id} listing={listing} />
           ))}
@@ -101,7 +110,7 @@ export function MyListingsPage() {
 
       {past.length > 0 && (
         <section className="my-listings__section">
-          <h2>Past</h2>
+          <h2>{t('myListings.past')}</h2>
           {past.map((listing) => (
             <ListingRow key={listing.id} listing={listing} />
           ))}

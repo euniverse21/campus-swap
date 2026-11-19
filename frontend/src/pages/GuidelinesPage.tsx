@@ -1,85 +1,79 @@
+import type { MessageKey } from '../i18n/en'
+import { useLanguage } from '../i18n/useLanguage'
 import './GuidelinesPage.css'
 
-// Things that can never be swapped on Campus Swap
-const PROHIBITED_EXCHANGES = [
-  'Food and beverages, including homemade meals',
-  'Alcohol, tobacco, vaping products and illegal drugs',
-  'Weapons and dangerous items',
-  'Prescription medication',
-  'Sexual services or intimate exchanges',
-  'Money, cash payments or additional payments',
-  'Completing assignments or exams for other students',
-  'Illegal activities or stolen goods',
-  'Medical, legal or financial services requiring professional qualifications',
-  'Activities involving harassment, coercion or exploitation',
+// Things that can never be swapped on Campus Swap (text lives in src/i18n/*.ts)
+const PROHIBITED_EXCHANGES: MessageKey[] = [
+  'guidelines.prohibited.food',
+  'guidelines.prohibited.substances',
+  'guidelines.prohibited.weapons',
+  'guidelines.prohibited.medication',
+  'guidelines.prohibited.sexual',
+  'guidelines.prohibited.money',
+  'guidelines.prohibited.cheating',
+  'guidelines.prohibited.illegal',
+  'guidelines.prohibited.professional',
+  'guidelines.prohibited.harm',
 ]
 
 // Extra rules for each kind of exchange
-const SAFETY_RULES = [
-  { exchange: 'Physical items', rule: 'Items must be legally owned and safe to use.' },
-  { exchange: 'Skills', rule: 'Clearly state skill level and expected duration.' },
-  { exchange: 'Services', rule: 'Define the task and limit excessive workloads.' },
-  { exchange: 'Companionship', rule: 'Voluntary participation; no obligation for physical contact.' },
-  { exchange: 'Physical activities', rule: 'Appropriate safety precautions and consent.' },
-  { exchange: 'Photography', rule: 'Obtain permission before taking or publishing photos.' },
-  { exchange: 'Academic support', rule: 'Tutoring is allowed; completing assessed work is prohibited.' },
+const SAFETY_RULES: { exchange: MessageKey; rule: MessageKey }[] = [
+  { exchange: 'guidelines.exchange.items', rule: 'guidelines.rule.items' },
+  { exchange: 'guidelines.exchange.skills', rule: 'guidelines.rule.skills' },
+  { exchange: 'guidelines.exchange.services', rule: 'guidelines.rule.services' },
+  { exchange: 'guidelines.exchange.companionship', rule: 'guidelines.rule.companionship' },
+  { exchange: 'guidelines.exchange.activities', rule: 'guidelines.rule.activities' },
+  { exchange: 'guidelines.exchange.photography', rule: 'guidelines.rule.photography' },
+  { exchange: 'guidelines.exchange.academic', rule: 'guidelines.rule.academic' },
 ]
 
 export function GuidelinesPage() {
+  const { t, tRich } = useLanguage()
+
   return (
     <main className="page guidelines">
       <header>
-        <h1>Community guidelines</h1>
-        <p className="guidelines__lead">
-          Campus Swap is a student-to-student exchange platform for the Flinders University community.
-          Students can exchange physical items, skills, services and experiences without using money.
-        </p>
-        <p>
-          Beyond traditional second-hand trading, users can post what they have to offer or what they
-          wish to receive, whether it&apos;s a textbook, photography lessons, help with moving, or simply
-          someone to accompany them to a lecture. The platform aims to encourage resource sharing, skill
-          exchange and meaningful social connections within the university community.
-        </p>
-        <p className="guidelines__note">
-          Right now you can swap physical items. Posting skills, services and experiences is coming soon.
-        </p>
+        <h1>{t('guidelines.title')}</h1>
+        <p className="guidelines__lead">{t('guidelines.lead')}</p>
+        <p>{t('guidelines.body')}</p>
+        <p className="guidelines__note">{t('guidelines.note')}</p>
       </header>
 
       <section className="guidelines__section" aria-labelledby="prohibited-heading">
-        <h2 id="prohibited-heading">Prohibited exchanges</h2>
-        <p>Listings, offers and chats must never include:</p>
+        <h2 id="prohibited-heading">{t('guidelines.prohibitedTitle')}</h2>
+        <p>{t('guidelines.prohibitedIntro')}</p>
         <ul className="guidelines__prohibited">
           {PROHIBITED_EXCHANGES.map((item) => (
-            <li key={item}>{item}</li>
+            <li key={item}>{t(item)}</li>
           ))}
         </ul>
       </section>
 
       <section className="guidelines__section" aria-labelledby="safety-heading">
-        <h2 id="safety-heading">Staying safe</h2>
-        <p>Each kind of exchange comes with its own rules.</p>
+        <h2 id="safety-heading">{t('guidelines.safetyTitle')}</h2>
+        <p>{t('guidelines.safetyIntro')}</p>
         <dl className="guidelines__rules">
           {SAFETY_RULES.map(({ exchange, rule }) => (
             <div key={exchange} className="guidelines__rule">
-              <dt>{exchange}</dt>
-              <dd>{rule}</dd>
+              <dt>{t(exchange)}</dt>
+              <dd>{t(rule)}</dd>
             </div>
           ))}
         </dl>
       </section>
 
       <section className="guidelines__section" aria-labelledby="wrong-heading">
-        <h2 id="wrong-heading">If something feels wrong</h2>
+        <h2 id="wrong-heading">{t('guidelines.wrongTitle')}</h2>
         <p>
-          You can stop at any time. Cancel the swap from <strong>My listings</strong> or{' '}
-          <strong>My offers</strong>, meet in a public place on campus, and don&apos;t go ahead with
-          anything that makes you feel unsafe.
+          {tRich('guidelines.wrongBody', {
+            myListings: <strong>{t('nav.myListings')}</strong>,
+            myOffers: <strong>{t('nav.myOffers')}</strong>,
+          })}
         </p>
       </section>
 
       <p className="guidelines__disclaimer">
-        Campus Swap is an independent student project and is not affiliated with or endorsed by Flinders
-        University.
+        {t('guidelines.disclaimer')}
       </p>
     </main>
   )

@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { getMessages, sendMessage } from '../api/messages'
 import type { ChatMessage } from '../api/types'
+import { describeError } from '../i18n/describeError'
+import { useLanguage } from '../i18n/useLanguage'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -12,8 +14,8 @@ function merge(current: ChatMessage[], incoming: ChatMessage[]): ChatMessage[] {
   return added.length === 0 ? current : [...current, ...added].sort((a, b) => a.id - b.id)
 }
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString('en-AU', {
+function formatTime(iso: string, locale: string): string {
+  return new Date(iso).toLocaleString(locale, {
     day: 'numeric',
     month: 'short',
     hour: 'numeric',
@@ -28,6 +30,7 @@ interface ChatBoxProps {
 
 // Simple chat: loads messages, then asks for new ones every 5 seconds
 export function ChatBox({ offerId, canSend }: ChatBoxProps) {
+  const { t, locale } = useLanguage()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
   const [draft, setDraft] = useState('')
@@ -82,7 +85,7 @@ export function ChatBox({ offerId, canSend }: ChatBoxProps) {
       setMessages((current) => merge(current, [sent]))
       setDraft('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send the message.')
+      setError(describeError(err, t, 'chat.sendError'))
     } finally {
       setIsSending(false)
     }
@@ -91,15 +94,15 @@ export function ChatBox({ offerId, canSend }: ChatBoxProps) {
   return (
     <div className="chat">
       <div className="chat__messages" ref={listRef}>
-        {!isLoaded && <p className="chat__empty">Loading messages…</p>}
+        {!isLoaded && <p className="chat__empty">{t('chat.loading')}</p>}
         {isLoaded && messages.length === 0 && (
-          <p className="chat__empty">No messages yet. Say hi and suggest a time and place to meet!</p>
+          <p className="chat__empty">{t('chat.empty')}</p>
         )}
         {messages.map((m) => (
           <div key={m.id} className={`chat__message ${m.isMine ? 'chat__message--mine' : ''}`}>
             <div className="chat__bubble">{m.body}</div>
             <span className="chat__meta">
-              {m.isMine ? 'You' : m.senderName} · {formatTime(m.sentAt)}
+              {m.isMine ? t('chat.you') : m.senderName} · {formatTime(m.sentAt, locale)}
             </span>
           </div>
         ))}
@@ -112,12 +115,12 @@ export function ChatBox({ offerId, canSend }: ChatBoxProps) {
           <input
             value={draft}
             maxLength={2000}
-            placeholder="Write a message…"
+            placeholder={t('chat.placeholder')}
             onChange={(e) => setDraft(e.target.value)}
-            aria-label="Message"
+            aria-label={t('chat.label')}
           />
           <button type="submit" className="btn btn--primary" disabled={isSending || !draft.trim()}>
-            Send
+            {t('chat.send')}
           </button>
         </form>
       )}

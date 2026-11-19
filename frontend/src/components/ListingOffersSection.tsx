@@ -5,6 +5,8 @@ import { useAuth } from '../auth/useAuth'
 import { OfferCard } from './OfferCard'
 import { OfferForm } from './OfferForm'
 import { SwapPanel } from './SwapPanel'
+import { describeError } from '../i18n/describeError'
+import { useLanguage } from '../i18n/useLanguage'
 import './Offers.css'
 
 interface LoadResult {
@@ -25,6 +27,7 @@ type PendingAction = { offerId: number; kind: 'accept' | 'reject' | 'withdraw' }
 // Owner: sees every offer and can accept or reject. Other students: see their own offer, or make one.
 export function ListingOffersSection({ listing, onListingChanged }: ListingOffersSectionProps) {
   const { student } = useAuth()
+  const { t } = useLanguage()
   const [result, setResult] = useState<LoadResult | null>(null)
   const [reloadCount, setReloadCount] = useState(0)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -44,14 +47,14 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setResult({ key, offers: [], error: err instanceof Error ? err.message : 'Could not load offers.' })
+          setResult({ key, offers: [], error: describeError(err, t, 'offers.loadError') })
         }
       })
 
     return () => {
       cancelled = true
     }
-  }, [key, listing.id, student])
+  }, [key, listing.id, student, t])
 
   if (!student) return null
 
@@ -68,7 +71,7 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
       setReloadCount((n) => n + 1)
       onListingChanged()
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Something went wrong. Please refresh and try again.')
+      setActionError(describeError(err, t, 'common.somethingWrongRefresh'))
       setReloadCount((n) => n + 1) // the offer may have changed meanwhile: show the latest state
     } finally {
       setBusy(null)
@@ -78,7 +81,7 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
   const isBusy = (offerId: number, kind: PendingAction['kind']) =>
     busy?.offerId === offerId && busy.kind === kind
 
-  if (!result || result.key !== key) return <p className="offers-section__message">Loading offers…</p>
+  if (!result || result.key !== key) return <p className="offers-section__message">{t('offers.loading')}</p>
   if (result.error) return <p className="form-error">{result.error}</p>
 
   // ----- Owner view -----
@@ -93,10 +96,10 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
 
         {accepted && (
           <div className="offers-section__accepted">
-            <h2>{accepted.status === 'Completed' ? 'Swapped with' : 'Accepted offer'}</h2>
+            <h2>{accepted.status === 'Completed' ? t('offers.swappedWith') : t('offers.acceptedOffer')}</h2>
             {accepted.status === 'Accepted' && (
               <p className="offers-section__message">
-                You accepted {accepted.offeredBy.displayName}&apos;s offer. Both items are reserved for this swap.
+                {t('offers.youAccepted', { name: accepted.offeredBy.displayName })}
               </p>
             )}
             <OfferCard offer={accepted} />
@@ -115,10 +118,11 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
         {!accepted && (
           <>
             <h2>
-              Offers {pending.length > 0 && <span className="offers-section__count">{pending.length}</span>}
+              {t('offers.title')}{' '}
+              {pending.length > 0 && <span className="offers-section__count">{pending.length}</span>}
             </h2>
             {pending.length === 0 && (
-              <p className="offers-section__message">No offers yet. Share your listing with friends!</p>
+              <p className="offers-section__message">{t('offers.none')}</p>
             )}
           </>
         )}
@@ -132,17 +136,17 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
                 listing.status === 'Open' &&
                 (confirmAcceptId === offer.id ? (
                   <div className="offers-section__confirm">
-                    <span>Accept this offer? Other offers will be declined.</span>
+                    <span>{t('offers.acceptConfirm')}</span>
                     <button
                       type="button"
                       className="btn btn--primary"
                       onClick={() => run({ offerId: offer.id, kind: 'accept' })}
                       disabled={busy !== null}
                     >
-                      {isBusy(offer.id, 'accept') ? 'Accepting…' : 'Yes, accept'}
+                      {isBusy(offer.id, 'accept') ? t('offers.accepting') : t('offers.yesAccept')}
                     </button>
                     <button type="button" className="btn btn--ghost" onClick={() => setConfirmAcceptId(null)}>
-                      Not yet
+                      {t('offers.notYet')}
                     </button>
                   </div>
                 ) : (
@@ -153,7 +157,7 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
                       onClick={() => setConfirmAcceptId(offer.id)}
                       disabled={busy !== null}
                     >
-                      Accept
+                      {t('offers.accept')}
                     </button>
                     <button
                       type="button"
@@ -161,7 +165,7 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
                       onClick={() => run({ offerId: offer.id, kind: 'reject' })}
                       disabled={busy !== null}
                     >
-                      {isBusy(offer.id, 'reject') ? 'Declining…' : 'Decline'}
+                      {isBusy(offer.id, 'reject') ? t('offers.declining') : t('offers.decline')}
                     </button>
                   </>
                 ))
@@ -172,7 +176,7 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
 
         {closed.length > 0 && (
           <details className="offers-section__past">
-            <summary>Closed offers ({closed.length})</summary>
+            <summary>{t('offers.closed', { count: closed.length })}</summary>
             <div className="offers-section__list">
               {closed.map((offer) => (
                 <OfferCard key={offer.id} offer={offer} />
@@ -195,10 +199,10 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
 
       {myAccepted ? (
         <div className="offers-section__accepted">
-          <h2>{myAccepted.status === 'Completed' ? 'Swap completed' : '🎉 Your offer was accepted!'}</h2>
+          <h2>{myAccepted.status === 'Completed' ? t('offers.swapCompleted') : t('offers.yourOfferAccepted')}</h2>
           {myAccepted.status === 'Accepted' && (
             <p className="offers-section__message">
-              {listing.owner.displayName} accepted your offer. Both items are reserved for this swap.
+              {t('offers.ownerAccepted', { name: listing.owner.displayName })}
             </p>
           )}
           <OfferCard offer={myAccepted} />
@@ -214,7 +218,7 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
         </div>
       ) : myPending ? (
         <>
-          <h2>Your offer</h2>
+          <h2>{t('offers.yourOffer')}</h2>
           <OfferCard
             offer={myPending}
             actions={
@@ -224,13 +228,13 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
                 onClick={() => run({ offerId: myPending.id, kind: 'withdraw' })}
                 disabled={busy !== null}
               >
-                {isBusy(myPending.id, 'withdraw') ? 'Withdrawing…' : 'Withdraw offer'}
+                {isBusy(myPending.id, 'withdraw') ? t('offers.withdrawing') : t('offers.withdraw')}
               </button>
             }
           />
         </>
       ) : listing.status !== 'Open' ? (
-        <p className="offers-section__message">This listing is no longer accepting offers.</p>
+        <p className="offers-section__message">{t('server.notAccepting')}</p>
       ) : isFormOpen ? (
         <OfferForm
           listingId={listing.id}
@@ -244,13 +248,13 @@ export function ListingOffersSection({ listing, onListingChanged }: ListingOffer
         />
       ) : (
         <button type="button" className="btn btn--primary btn--block" onClick={() => setIsFormOpen(true)}>
-          Make an offer
+          {t('offers.make')}
         </button>
       )}
 
       {myPast.length > 0 && (
         <details className="offers-section__past">
-          <summary>Your previous offers ({myPast.length})</summary>
+          <summary>{t('offers.previous', { count: myPast.length })}</summary>
           <div className="offers-section__list">
             {myPast.map((offer) => (
               <OfferCard key={offer.id} offer={offer} />

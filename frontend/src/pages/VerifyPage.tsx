@@ -3,15 +3,14 @@ import type { FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { confirmCode, requestCode } from '../api/verification'
 import { useAuth } from '../auth/useAuth'
+import { describeError } from '../i18n/describeError'
+import { useLanguage } from '../i18n/useLanguage'
 
 type Step = 'email' | 'code'
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : 'Something went wrong. Please try again.'
-}
-
 export function VerifyPage() {
   const { signIn } = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -35,9 +34,9 @@ export function VerifyPage() {
     try {
       await requestCode(email.trim())
       setStep('code')
-      setInfo(`We sent a 6-digit code to ${email.trim()}. It expires in 10 minutes.`)
+      setInfo(t('verify.codeSent', { email: email.trim() }))
     } catch (err) {
-      setError(errorMessage(err))
+      setError(describeError(err, t))
     } finally {
       setIsSubmitting(false)
     }
@@ -57,7 +56,7 @@ export function VerifyPage() {
       signIn(session.token, session.student)
       navigate(safeNext, { replace: true })
     } catch (err) {
-      setError(errorMessage(err))
+      setError(describeError(err, t))
     } finally {
       setIsSubmitting(false)
     }
@@ -66,10 +65,8 @@ export function VerifyPage() {
   return (
     <main className="page page--narrow">
       <div className="form-card">
-        <h1>Verify you&apos;re a student</h1>
-        <p className="form-card__intro">
-          Campus Swap is only for university students. No password — we just email you a code.
-        </p>
+        <h1>{t('verify.title')}</h1>
+        <p className="form-card__intro">{t('verify.intro')}</p>
 
         {info && <p className="form-info">{info}</p>}
         {error && <p className="form-error">{error}</p>}
@@ -77,7 +74,7 @@ export function VerifyPage() {
         {step === 'email' ? (
           <form onSubmit={handleRequestCode} className="form">
             <label className="form-field">
-              <span>University email</span>
+              <span>{t('verify.emailLabel')}</span>
               <input
                 type="email"
                 required
@@ -89,13 +86,13 @@ export function VerifyPage() {
             </label>
 
             <button type="submit" className="btn btn--primary btn--block" disabled={isSubmitting}>
-              {isSubmitting ? 'Sending…' : 'Send code'}
+              {isSubmitting ? t('common.sending') : t('verify.sendCode')}
             </button>
           </form>
         ) : (
           <form onSubmit={handleConfirm} className="form">
             <label className="form-field">
-              <span>6-digit code</span>
+              <span>{t('verify.codeLabel')}</span>
               <input
                 required
                 inputMode="numeric"
@@ -109,23 +106,23 @@ export function VerifyPage() {
             </label>
 
             <label className="form-field">
-              <span>Nickname</span>
+              <span>{t('verify.nicknameLabel')}</span>
               <input
                 maxLength={50}
-                placeholder="e.g. Eulia"
+                placeholder={t('verify.nicknamePlaceholder')}
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
               />
-              <small>Shown to other students. Required the first time you verify.</small>
+              <small>{t('verify.nicknameHint')}</small>
             </label>
 
             <button type="submit" className="btn btn--primary btn--block" disabled={isSubmitting}>
-              {isSubmitting ? 'Checking…' : 'Verify'}
+              {isSubmitting ? t('verify.checking') : t('verify.submit')}
             </button>
 
             <div className="form-links">
               <button type="button" className="link-button" onClick={sendCode} disabled={isSubmitting}>
-                Resend code
+                {t('verify.resend')}
               </button>
               <button
                 type="button"
@@ -137,7 +134,7 @@ export function VerifyPage() {
                   setInfo(null)
                 }}
               >
-                Use a different email
+                {t('verify.differentEmail')}
               </button>
             </div>
           </form>

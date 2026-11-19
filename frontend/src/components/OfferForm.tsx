@@ -5,6 +5,8 @@ import { ITEM_CATEGORIES, ITEM_CONDITIONS } from '../api/types'
 import type { ItemCategory, ItemCondition, Offer } from '../api/types'
 import { GuidelinesConsent } from './GuidelinesConsent'
 import { PhotoPicker } from './PhotoPicker'
+import { describeError } from '../i18n/describeError'
+import { useLanguage } from '../i18n/useLanguage'
 
 const MAX_PHOTOS = 3
 
@@ -16,6 +18,7 @@ interface OfferFormProps {
 }
 
 export function OfferForm({ listingId, wantedDescription, onSubmitted, onCancel }: OfferFormProps) {
+  const { t, tRich } = useLanguage()
   const [itemName, setItemName] = useState('')
   const [itemDescription, setItemDescription] = useState('')
   const [category, setCategory] = useState<ItemCategory | ''>('')
@@ -29,7 +32,7 @@ export function OfferForm({ listingId, wantedDescription, onSubmitted, onCancel 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (photos.length === 0) {
-      setError('Please add at least one photo of your item.')
+      setError(t('offerForm.noPhoto'))
       return
     }
 
@@ -47,23 +50,23 @@ export function OfferForm({ listingId, wantedDescription, onSubmitted, onCancel 
       const offer = await createOffer(listingId, form)
       onSubmitted(offer)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send your offer.')
+      setError(describeError(err, t, 'offerForm.error'))
       setIsSubmitting(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="form offer-form">
-      <h2>Make an offer</h2>
+      <h2>{t('offers.make')}</h2>
       <p className="offer-form__hint">
-        The owner wants: <strong>{wantedDescription}</strong>
+        {tRich('offerForm.ownerWants', { wanted: <strong>{wantedDescription}</strong> })}
       </p>
 
       {error && <p className="form-error">{error}</p>}
 
       <fieldset className="form-field">
         <span>
-          Photos of your item <small>(1–{MAX_PHOTOS})</small>
+          {t('offerForm.photos')} <small>{t('offerForm.photosHint', { max: MAX_PHOTOS })}</small>
         </span>
         <PhotoPicker
           photos={photos}
@@ -75,11 +78,11 @@ export function OfferForm({ listingId, wantedDescription, onSubmitted, onCancel 
       </fieldset>
 
       <label className="form-field">
-        <span>Your item</span>
+        <span>{t('offerForm.item')}</span>
         <input
           required
           maxLength={100}
-          placeholder="e.g. Blue winter jacket, size M"
+          placeholder={t('offerForm.itemPlaceholder')}
           value={itemName}
           onChange={(e) => setItemName(e.target.value)}
         />
@@ -87,28 +90,28 @@ export function OfferForm({ listingId, wantedDescription, onSubmitted, onCancel 
 
       <div className="form-row">
         <label className="form-field">
-          <span>Category</span>
+          <span>{t('create.category')}</span>
           <select required value={category} onChange={(e) => setCategory(e.target.value as ItemCategory)}>
             <option value="" disabled>
-              Choose…
+              {t('common.choose')}
             </option>
             {ITEM_CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {t(`category.${c}`)}
               </option>
             ))}
           </select>
         </label>
 
         <label className="form-field">
-          <span>Condition</span>
+          <span>{t('create.condition')}</span>
           <select required value={condition} onChange={(e) => setCondition(e.target.value as ItemCondition)}>
             <option value="" disabled>
-              Choose…
+              {t('common.choose')}
             </option>
             {ITEM_CONDITIONS.map((c) => (
               <option key={c.value} value={c.value}>
-                {c.label}
+                {t(`condition.${c.value}`)}
               </option>
             ))}
           </select>
@@ -117,12 +120,12 @@ export function OfferForm({ listingId, wantedDescription, onSubmitted, onCancel 
 
       <label className="form-field">
         <span>
-          Item details <small>(optional)</small>
+          {t('offerForm.details')} <small>{t('common.optional')}</small>
         </span>
         <textarea
           rows={2}
           maxLength={2000}
-          placeholder="Size, brand, any marks…"
+          placeholder={t('offerForm.detailsPlaceholder')}
           value={itemDescription}
           onChange={(e) => setItemDescription(e.target.value)}
         />
@@ -130,12 +133,12 @@ export function OfferForm({ listingId, wantedDescription, onSubmitted, onCancel 
 
       <label className="form-field">
         <span>
-          Message to the owner <small>(optional)</small>
+          {t('offerForm.message')} <small>{t('common.optional')}</small>
         </span>
         <textarea
           rows={2}
           maxLength={1000}
-          placeholder="e.g. I can meet at the City Campus on Thursday"
+          placeholder={t('offerForm.messagePlaceholder')}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
         />
@@ -145,10 +148,10 @@ export function OfferForm({ listingId, wantedDescription, onSubmitted, onCancel 
 
       <div className="offer-form__buttons">
         <button type="submit" className="btn btn--primary" disabled={isSubmitting || isPreparingPhotos}>
-          {isSubmitting ? 'Sending…' : 'Send offer'}
+          {isSubmitting ? t('common.sending') : t('offerForm.send')}
         </button>
         <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={isSubmitting}>
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     </form>

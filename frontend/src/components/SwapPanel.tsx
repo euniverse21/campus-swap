@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { cancelSwap, confirmSwap } from '../api/offers'
 import type { Offer } from '../api/types'
 import { ChatBox } from './ChatBox'
+import { describeError } from '../i18n/describeError'
+import { useLanguage } from '../i18n/useLanguage'
 
 interface SwapPanelProps {
   offer: Offer
@@ -12,6 +14,7 @@ interface SwapPanelProps {
 
 // Everything after an offer is accepted: steps, chat, "We swapped" and "Cancel swap"
 export function SwapPanel({ offer, role, otherName, onChanged }: SwapPanelProps) {
+  const { t, tRich } = useLanguage()
   const [isConfirmingCancel, setIsConfirmingCancel] = useState(false)
   const [busy, setBusy] = useState<'confirm' | 'cancel' | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +31,7 @@ export function SwapPanel({ offer, role, otherName, onChanged }: SwapPanelProps)
       else await cancelSwap(offer.id)
       onChanged()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please refresh and try again.')
+      setError(describeError(err, t, 'common.somethingWrongRefresh'))
       setBusy(null)
     }
   }
@@ -36,15 +39,15 @@ export function SwapPanel({ offer, role, otherName, onChanged }: SwapPanelProps)
   return (
     <div className="swap-panel">
       {isCompleted ? (
-        <p className="swap-panel__done">✅ Swap completed. Enjoy your new item!</p>
+        <p className="swap-panel__done">{t('swap.done')}</p>
       ) : (
         <ol className="swap-panel__steps">
-          <li>Chat with {otherName} and agree on a time and a public place on campus.</li>
-          <li>Meet and swap the items.</li>
+          <li>{t('swap.step1', { name: otherName })}</li>
+          <li>{t('swap.step2')}</li>
           <li>
-            Both press <strong>We swapped</strong>.{' '}
-            {iConfirmed && !theyConfirmed && <em>You confirmed — waiting for {otherName}.</em>}
-            {!iConfirmed && theyConfirmed && <em>{otherName} has confirmed — your turn.</em>}
+            {tRich('swap.step3', { button: <strong>{t('swap.weSwapped')}</strong> })}{' '}
+            {iConfirmed && !theyConfirmed && <em>{t('swap.waitingForThem', { name: otherName })}</em>}
+            {!iConfirmed && theyConfirmed && <em>{t('swap.yourTurn', { name: otherName })}</em>}
           </li>
         </ol>
       )}
@@ -53,7 +56,7 @@ export function SwapPanel({ offer, role, otherName, onChanged }: SwapPanelProps)
       <ChatBox offerId={offer.id} canSend />
 
       <p className="swap-panel__safety">
-        Stay safe: meet in a busy place on campus and don&apos;t share your home address.
+        {t('swap.safety')}
       </p>
 
       {error && <p className="form-error">{error}</p>}
@@ -67,23 +70,23 @@ export function SwapPanel({ offer, role, otherName, onChanged }: SwapPanelProps)
               onClick={() => run('confirm')}
               disabled={busy !== null}
             >
-              {busy === 'confirm' ? 'Saving…' : 'We swapped ✓'}
+              {busy === 'confirm' ? t('swap.saving') : t('swap.weSwappedButton')}
             </button>
           )}
 
           {isConfirmingCancel ? (
             <span className="swap-panel__cancel-confirm">
-              Cancel this swap? The listing will open again.
+              {t('swap.cancelConfirm')}
               <button
                 type="button"
                 className="btn btn--danger"
                 onClick={() => run('cancel')}
                 disabled={busy !== null}
               >
-                {busy === 'cancel' ? 'Cancelling…' : 'Yes, cancel swap'}
+                {busy === 'cancel' ? t('swap.cancelling') : t('swap.yesCancel')}
               </button>
               <button type="button" className="btn btn--ghost" onClick={() => setIsConfirmingCancel(false)}>
-                Keep it
+                {t('swap.keep')}
               </button>
             </span>
           ) : (
@@ -93,7 +96,7 @@ export function SwapPanel({ offer, role, otherName, onChanged }: SwapPanelProps)
               onClick={() => setIsConfirmingCancel(true)}
               disabled={busy !== null}
             >
-              Cancel swap
+              {t('swap.cancel')}
             </button>
           )}
         </div>

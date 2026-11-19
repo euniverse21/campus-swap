@@ -1,9 +1,12 @@
 import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../auth/useAuth'
+import { useLanguage } from '../i18n/useLanguage'
+import { LanguageSelect } from './LanguageSelect'
 import './Header.css'
 
 export function Header() {
   const { student, signOut } = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
 
   async function handleSignOut() {
@@ -19,28 +22,29 @@ export function Header() {
         </Link>
 
         <nav className="site-header__nav">
+          <LanguageSelect />
           <Link to="/guidelines" className="site-header__link">
-            Guidelines
+            {t('nav.guidelines')}
           </Link>
           {student ? (
             <>
-              <span className="site-header__hello">Hi, {student.displayName}</span>
+              <span className="site-header__hello">{t('nav.hello', { name: student.displayName })}</span>
               <Link to="/my-listings" className="btn btn--ghost">
-                My listings
+                {t('nav.myListings')}
               </Link>
               <Link to="/offers" className="btn btn--ghost">
-                My offers
+                {t('nav.myOffers')}
               </Link>
               <Link to="/listings/new" className="btn btn--primary">
-                List an item
+                {t('nav.listItem')}
               </Link>
               <button type="button" className="btn btn--ghost" onClick={handleSignOut}>
-                Sign out
+                {t('nav.signOut')}
               </button>
             </>
           ) : (
             <Link to="/verify" className="btn btn--primary">
-              Verify student email
+              {t('nav.verify')}
             </Link>
           )}
         </nav>

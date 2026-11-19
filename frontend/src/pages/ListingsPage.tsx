@@ -3,6 +3,8 @@ import { getListings } from '../api/listings'
 import { ITEM_CATEGORIES } from '../api/types'
 import type { ItemCategory, ListingSummary } from '../api/types'
 import { ItemCard } from '../components/ItemCard'
+import { describeError } from '../i18n/describeError'
+import { useLanguage } from '../i18n/useLanguage'
 import './ListingsPage.css'
 
 interface LoadResult {
@@ -12,6 +14,7 @@ interface LoadResult {
 }
 
 export function ListingsPage() {
+  const { t } = useLanguage()
   const [category, setCategory] = useState<ItemCategory | undefined>(undefined)
   const [result, setResult] = useState<LoadResult | null>(null)
 
@@ -28,8 +31,7 @@ export function ListingsPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          const message = err instanceof Error ? err.message : 'Something went wrong.'
-          setResult({ key, listings: [], error: message })
+          setResult({ key, listings: [], error: describeError(err, t) })
         }
       })
 
@@ -37,22 +39,22 @@ export function ListingsPage() {
     return () => {
       cancelled = true
     }
-  }, [category, key])
+  }, [category, key, t])
 
   return (
     <main className="listings-page">
       <header className="listings-page__header">
-        <h1>Find something to swap</h1>
-        <p>Swap what you don&apos;t need for what you do — no money involved.</p>
+        <h1>{t('listings.title')}</h1>
+        <p>{t('listings.subtitle')}</p>
       </header>
 
-      <nav className="category-filter" aria-label="Filter by category">
+      <nav className="category-filter" aria-label={t('listings.filterLabel')}>
         <button
           type="button"
           className={category === undefined ? 'is-active' : ''}
           onClick={() => setCategory(undefined)}
         >
-          All
+          {t('listings.all')}
         </button>
         {ITEM_CATEGORIES.map((c) => (
           <button
@@ -61,21 +63,21 @@ export function ListingsPage() {
             className={category === c ? 'is-active' : ''}
             onClick={() => setCategory(c)}
           >
-            {c}
+            {t(`category.${c}`)}
           </button>
         ))}
       </nav>
 
-      {isLoading && <p className="listings-page__message">Loading…</p>}
+      {isLoading && <p className="listings-page__message">{t('common.loading')}</p>}
 
       {!isLoading && result?.error && (
         <p className="listings-page__message listings-page__message--error">
-          Could not load items: {result.error}
+          {t('listings.loadError', { error: result.error })}
         </p>
       )}
 
       {!isLoading && !result?.error && result?.listings.length === 0 && (
-        <p className="listings-page__message">No items in this category yet.</p>
+        <p className="listings-page__message">{t('listings.empty')}</p>
       )}
 
       {!isLoading && result && result.listings.length > 0 && (

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
+import { useLanguage } from '../i18n/useLanguage'
 import { resizeImage } from '../utils/resizeImage'
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -15,6 +16,7 @@ interface PhotoPickerProps {
 
 // Shared by "List an item" and "Make an offer": pick, preview, remove and shrink photos
 export function PhotoPicker({ photos, onChange, maxPhotos, onError, onBusyChange }: PhotoPickerProps) {
+  const { t } = useLanguage()
   const [isPreparing, setIsPreparing] = useState(false)
 
   // Temporary browser URLs so the selected photos can be previewed before upload
@@ -29,7 +31,7 @@ export function PhotoPicker({ photos, onChange, maxPhotos, onError, onBusyChange
     onError(null)
 
     const room = maxPhotos - photos.length
-    if (selected.length > room) onError(`You can add up to ${maxPhotos} photos.`)
+    if (selected.length > room) onError(t('photos.max', { max: maxPhotos }))
 
     setIsPreparing(true)
     onBusyChange?.(true)
@@ -37,7 +39,7 @@ export function PhotoPicker({ photos, onChange, maxPhotos, onError, onBusyChange
     const accepted: File[] = []
     for (const file of selected.slice(0, room)) {
       if (!ACCEPTED_TYPES.includes(file.type)) {
-        onError('Only JPEG, PNG or WebP images are allowed.')
+        onError(t('server.photoType'))
         continue
       }
       accepted.push(await resizeImage(file))
@@ -56,12 +58,12 @@ export function PhotoPicker({ photos, onChange, maxPhotos, onError, onBusyChange
     <div className="photo-picker">
       {previews.map((url, index) => (
         <div key={url} className="photo-picker__item">
-          <img src={url} alt={`Photo ${index + 1}`} />
+          <img src={url} alt={t('photos.alt', { n: index + 1 })} />
           <button
             type="button"
             className="photo-picker__remove"
             onClick={() => removePhoto(index)}
-            aria-label={`Remove photo ${index + 1}`}
+            aria-label={t('photos.remove', { n: index + 1 })}
           >
             ×
           </button>
@@ -70,7 +72,7 @@ export function PhotoPicker({ photos, onChange, maxPhotos, onError, onBusyChange
 
       {photos.length < maxPhotos && (
         <label className="photo-picker__add">
-          {isPreparing ? 'Preparing…' : '+ Add photos'}
+          {isPreparing ? t('photos.preparing') : t('photos.add')}
           <input
             type="file"
             accept={ACCEPTED_TYPES.join(',')}

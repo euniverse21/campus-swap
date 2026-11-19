@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { ITEM_CONDITIONS } from '../api/types'
 import type { Offer } from '../api/types'
+import { useLanguage } from '../i18n/useLanguage'
 import './Offers.css'
 
 interface OfferCardProps {
@@ -10,24 +10,28 @@ interface OfferCardProps {
 }
 
 export function OfferCard({ offer, actions }: OfferCardProps) {
+  const { t, tRich } = useLanguage()
   const item = offer.offeredItem
-  const conditionLabel = ITEM_CONDITIONS.find((c) => c.value === item?.condition)?.label ?? item?.condition
 
   return (
     <article className={`offer-card offer-card--${offer.status.toLowerCase()}`}>
       <div className="offer-card__photo">
-        {item?.photoUrls[0] ? <img src={item.photoUrls[0]} alt={item.name} /> : <span>No photo</span>}
+        {item?.photoUrls[0] ? <img src={item.photoUrls[0]} alt={item.name} /> : <span>{t('common.noPhoto')}</span>}
       </div>
 
       <div className="offer-card__body">
         <div className="offer-card__top">
-          <h3>{item?.name ?? 'Offer'}</h3>
-          <span className={`status-badge status-badge--${offer.status.toLowerCase()}`}>{offer.status}</span>
+          <h3>{item?.name ?? t('offerCard.offer')}</h3>
+          <span className={`status-badge status-badge--${offer.status.toLowerCase()}`}>{t(`offerStatus.${offer.status}`)}</span>
         </div>
 
         {item && (
           <p className="offer-card__meta">
-            {item.category} · {conditionLabel} · from <strong>{offer.isMine ? 'you' : offer.offeredBy.displayName}</strong>
+            {tRich('offerCard.meta', {
+              category: t(`category.${item.category}`),
+              condition: t(`condition.${item.condition}`),
+              name: <strong>{offer.isMine ? t('offerCard.you') : offer.offeredBy.displayName}</strong>,
+            })}
           </p>
         )}
 

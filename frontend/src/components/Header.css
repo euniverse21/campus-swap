@@ -33,6 +33,23 @@
   gap: 8px;
 }
 
+/* Language picker */
+.language-select {
+  font: inherit;
+  font-size: 14px;
+  color: var(--text-h);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.language-select:hover,
+.language-select:focus {
+  border-color: var(--accent);
+}
+
 .site-header__link {
   font-size: 14px;
   font-weight: 600;
