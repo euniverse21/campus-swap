@@ -28,13 +28,29 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
-// Student verification settings + email sender (console output during development)
+// Student verification settings (allowed email domains, code expiry, session length)
 builder.Services.Configure<StudentVerificationOptions>(
     builder.Configuration.GetSection(StudentVerificationOptions.SectionName));
-builder.Services.AddScoped<IEmailSender, ConsoleEmailSender>();
 
-// Photo storage: local "uploads" folder during development (Azure Blob later)
-builder.Services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
+// Email: real emails on Azure; printed to the terminal (+ .dev/emails.log) during development
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection(EmailOptions.SectionName));
+if (!string.IsNullOrWhiteSpace(builder.Configuration["Email:ConnectionString"]))
+    builder.Services.AddSingleton<IEmailSender, AcsEmailSender>();
+else if (builder.Environment.IsDevelopment())
+    builder.Services.AddScoped<IEmailSender, ConsoleEmailSender>();
+else
+    throw new InvalidOperationException(
+        "Email:ConnectionString must be set outside Development, otherwise students never receive their codes.");
+
+// Photo storage: Azure Blob Storage when configured (production), local "uploads" folder otherwise
+var blobConnectionString = builder.Configuration["PhotoStorage:BlobConnectionString"];
+var useBlobStorage = !string.IsNullOrWhiteSpace(blobConnectionString);
+if (useBlobStorage)
+    builder.Services.AddSingleton<IPhotoStorage>(new BlobPhotoStorage(
+        blobConnectionString!,
+        builder.Configuration["PhotoStorage:ContainerName"] ?? "photos"));
+else
+    builder.Services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
 builder.Services.AddScoped<PhotoUploader>();
 
 // Swap actions (accept, reject, withdraw, cancel) with row locking + transactions
@@ -68,6 +84,14 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// Apply pending database migrations at startup when enabled (turned on in the Azure settings)
+if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -75,14 +99,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Serve uploaded photos at /uploads/<file>
-var uploadsFolder = LocalPhotoStorage.GetFolderPath(app.Environment);
-Directory.CreateDirectory(uploadsFolder);
-app.UseStaticFiles(new StaticFileOptions
+// Local development only: serve uploaded photos at /uploads/<file>
+if (!useBlobStorage)
 {
-    FileProvider = new PhysicalFileProvider(uploadsFolder),
-    RequestPath = LocalPhotoStorage.RequestPath,
-});
+    var uploadsFolder = LocalPhotoStorage.GetFolderPath(app.Environment);
+    Directory.CreateDirectory(uploadsFolder);
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(uploadsFolder),
+        RequestPath = LocalPhotoStorage.RequestPath,
+    });
+}
 
 app.UseCors("Frontend");
 app.UseRateLimiter();
