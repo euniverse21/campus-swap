@@ -198,6 +198,27 @@ img {
   color: var(--text-h);
 }
 
+/* Required "I follow the guidelines" tick box */
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-h);
+}
+
+.consent input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+
+.consent a {
+  color: var(--accent);
+}
+
 .form-links {
   display: flex;
   justify-content: space-between;

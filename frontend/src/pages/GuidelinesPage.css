@@ -1,0 +1,105 @@
+.guidelines {
+  width: min(760px, 100%);
+}
+
+.guidelines h1 {
+  margin: 8px 0 12px;
+  font-size: 32px;
+  color: var(--text-h);
+}
+
+.guidelines h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  color: var(--text-h);
+}
+
+.guidelines p {
+  margin: 0 0 12px;
+}
+
+.guidelines__lead {
+  font-size: 17px;
+  color: var(--text-h);
+}
+
+.guidelines__note {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.guidelines__section {
+  margin-top: 24px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.guidelines__section p:last-child {
+  margin-bottom: 0;
+}
+
+.guidelines__prohibited {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px 20px;
+}
+
+.guidelines__prohibited li {
+  position: relative;
+  padding-left: 26px;
+}
+
+.guidelines__prohibited li::before {
+  content: '✕';
+  content: '✕' / '';
+  position: absolute;
+  left: 2px;
+  top: 0;
+  font-weight: 700;
+  color: #b42318;
+}
+
+.guidelines__rules {
+  margin: 12px 0 0;
+}
+
+.guidelines__rule {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+
+.guidelines__rule:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.guidelines__rule dt {
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.guidelines__rule dd {
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .guidelines__section {
+    padding: 18px;
+  }
+
+  .guidelines__rule {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

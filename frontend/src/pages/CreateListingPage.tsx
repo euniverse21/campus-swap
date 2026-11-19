@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { createListing } from '../api/listings'
 import { ITEM_CATEGORIES, ITEM_CONDITIONS } from '../api/types'
 import type { ItemCategory, ItemCondition } from '../api/types'
+import { GuidelinesConsent } from '../components/GuidelinesConsent'
 import { PhotoPicker } from '../components/PhotoPicker'
 
 const MAX_PHOTOS = 5
@@ -156,6 +157,8 @@ export function CreateListingPage() {
               onChange={(e) => setMeetingLocation(e.target.value)}
             />
           </label>
+
+          <GuidelinesConsent />
 
           <button
             type="submit"

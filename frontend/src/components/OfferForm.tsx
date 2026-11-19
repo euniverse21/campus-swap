@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { createOffer } from '../api/offers'
 import { ITEM_CATEGORIES, ITEM_CONDITIONS } from '../api/types'
 import type { ItemCategory, ItemCondition, Offer } from '../api/types'
+import { GuidelinesConsent } from './GuidelinesConsent'
 import { PhotoPicker } from './PhotoPicker'
 
 const MAX_PHOTOS = 3
@@ -139,6 +140,8 @@ export function OfferForm({ listingId, wantedDescription, onSubmitted, onCancel 
           onChange={(e) => setMessage(e.target.value)}
         />
       </label>
+
+      <GuidelinesConsent />
 
       <div className="offer-form__buttons">
         <button type="submit" className="btn btn--primary" disabled={isSubmitting || isPreparingPhotos}>

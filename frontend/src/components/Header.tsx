@@ -19,6 +19,9 @@ export function Header() {
         </Link>
 
         <nav className="site-header__nav">
+          <Link to="/guidelines" className="site-header__link">
+            Guidelines
+          </Link>
           {student ? (
             <>
               <span className="site-header__hello">Hi, {student.displayName}</span>

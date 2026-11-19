@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthProvider'
 import { Header } from './components/Header'
 import { RequireStudent } from './components/RequireStudent'
 import { CreateListingPage } from './pages/CreateListingPage'
+import { GuidelinesPage } from './pages/GuidelinesPage'
 import { ListingDetailPage } from './pages/ListingDetailPage'
 import { ListingsPage } from './pages/ListingsPage'
 import { MyListingsPage } from './pages/MyListingsPage'
@@ -17,6 +18,7 @@ function App() {
         <Routes>
           <Route path="/" element={<ListingsPage />} />
           <Route path="/verify" element={<VerifyPage />} />
+          <Route path="/guidelines" element={<GuidelinesPage />} />
           <Route
             path="/listings/new"
             element={
