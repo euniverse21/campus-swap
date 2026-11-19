@@ -123,3 +123,13 @@ export interface ChatMessage {
   sentAt: string
   isMine: boolean
 }
+
+export interface MyListing {
+  id: number
+  name: string
+  status: ListingStatus
+  photoUrl: string | null
+  createdAt: string
+  pendingOfferCount: number
+  swapPartnerName: string | null
+}

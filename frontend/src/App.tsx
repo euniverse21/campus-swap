@@ -5,6 +5,7 @@ import { RequireStudent } from './components/RequireStudent'
 import { CreateListingPage } from './pages/CreateListingPage'
 import { ListingDetailPage } from './pages/ListingDetailPage'
 import { ListingsPage } from './pages/ListingsPage'
+import { MyListingsPage } from './pages/MyListingsPage'
 import { MyOffersPage } from './pages/MyOffersPage'
 import { VerifyPage } from './pages/VerifyPage'
 
@@ -25,6 +26,14 @@ function App() {
             }
           />
           <Route path="/listings/:id" element={<ListingDetailPage />} />
+          <Route
+            path="/my-listings"
+            element={
+              <RequireStudent>
+                <MyListingsPage />
+              </RequireStudent>
+            }
+          />
           <Route
             path="/offers"
             element={

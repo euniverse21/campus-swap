@@ -22,6 +22,9 @@ export function Header() {
           {student ? (
             <>
               <span className="site-header__hello">Hi, {student.displayName}</span>
+              <Link to="/my-listings" className="btn btn--ghost">
+                My listings
+              </Link>
               <Link to="/offers" className="btn btn--ghost">
                 My offers
               </Link>

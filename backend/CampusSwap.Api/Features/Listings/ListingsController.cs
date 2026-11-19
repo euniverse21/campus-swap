@@ -135,6 +135,45 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
         return new PagedResult<ListingSummaryDto>(items, page, pageSize, totalCount);
     }
 
+    // Everything I have listed, newest first, with offer counts and who I'm swapping with
+    [Authorize]
+    [HttpGet("mine")]
+    public async Task<ActionResult<List<MyListingDto>>> Mine(CancellationToken ct)
+    {
+        var studentId = User.GetStudentId();
+
+        var rows = await db.Listings
+            .AsNoTracking()
+            .Where(l => l.OwnerId == studentId)
+            .OrderByDescending(l => l.CreatedAt)
+            .ThenByDescending(l => l.Id)
+            .Select(l => new
+            {
+                l.Id,
+                l.Item.Name,
+                l.Status,
+                l.CreatedAt,
+                PhotoUrl = l.Item.Photos.OrderBy(p => p.SortOrder).Select(p => p.Url).FirstOrDefault(),
+                PendingOfferCount = l.Offers.Count(o => o.Status == OfferStatus.Pending),
+                SwapPartnerName = l.Offers
+                    .Where(o => o.Status == OfferStatus.Accepted || o.Status == OfferStatus.Completed)
+                    .Select(o => o.OfferedBy.DisplayName)
+                    .FirstOrDefault(),
+            })
+            .ToListAsync(ct);
+
+        return rows
+            .Select(r => new MyListingDto(
+                r.Id,
+                r.Name,
+                r.Status.ToString(),
+                r.PhotoUrl is null ? null : Request.ToAbsoluteUrl(r.PhotoUrl),
+                r.CreatedAt,
+                r.PendingOfferCount,
+                r.SwapPartnerName))
+            .ToList();
+    }
+
     // Anyone can view a listing; IsMine is true when the viewer is the owner
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ListingDetailDto>> GetById(int id, CancellationToken ct)

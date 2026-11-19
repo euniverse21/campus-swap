@@ -65,3 +65,13 @@ public record PagedResult<T>(
     int Page,
     int PageSize,
     int TotalCount);
+
+// One row on the "My listings" page
+public record MyListingDto(
+    int Id,
+    string Name,
+    string Status,
+    string? PhotoUrl,
+    DateTime CreatedAt,
+    int PendingOfferCount,
+    string? SwapPartnerName);

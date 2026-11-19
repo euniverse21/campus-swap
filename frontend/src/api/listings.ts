@@ -1,5 +1,5 @@
 import { apiFetch } from './client'
-import type { ItemCategory, ListingDetail, ListingSummary, PagedResult } from './types'
+import type { ItemCategory, ListingDetail, ListingSummary, MyListing, PagedResult } from './types'
 
 export interface ListingQuery {
   category?: ItemCategory
@@ -29,4 +29,9 @@ export function createListing(form: FormData): Promise<ListingDetail> {
 
 export function cancelListing(id: number): Promise<void> {
   return apiFetch<void>(`/api/listings/${id}`, { method: 'DELETE' })
+}
+
+// Listings created by the signed-in student
+export function getMyListings(): Promise<MyListing[]> {
+  return apiFetch<MyListing[]>('/api/listings/mine')
 }
