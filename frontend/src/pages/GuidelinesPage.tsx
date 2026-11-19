@@ -76,6 +76,11 @@ export function GuidelinesPage() {
           anything that makes you feel unsafe.
         </p>
       </section>
+
+      <p className="guidelines__disclaimer">
+        Campus Swap is an independent student project and is not affiliated with or endorsed by Flinders
+        University.
+      </p>
     </main>
   )
 }

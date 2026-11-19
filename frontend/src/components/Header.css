@@ -1,6 +1,6 @@
 .site-header {
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--gold);
   position: sticky;
   top: 0;
   z-index: 10;

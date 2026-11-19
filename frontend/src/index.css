@@ -1,14 +1,20 @@
 :root {
-  --text: #4b4656;
-  --text-h: #16131c;
-  --text-muted: #8a8494;
-  --bg: #f7f6f9;
+  /* Flinders University colours: Midnight Blue and Gold */
+  --flinders-blue: #002f60;
+  --flinders-gold: #ffd300;
+
+  --text: #3d4756;
+  --text-h: #0b1a2e;
+  --text-muted: #626d7e;
+  --bg: #f4f6f9;
   --surface: #ffffff;
-  --muted-bg: #eeecf1;
-  --border: #e3e1e8;
-  --accent: #7c3aed;
-  --accent-bg: rgba(124, 58, 237, 0.1);
-  --shadow: 0 10px 20px -8px rgba(22, 19, 28, 0.18);
+  --muted-bg: #e9edf3;
+  --border: #dde3eb;
+  --accent: var(--flinders-blue);
+  --accent-hover: #0a4a8a;
+  --accent-bg: rgba(0, 47, 96, 0.08);
+  --gold: var(--flinders-gold);
+  --shadow: 0 10px 20px -8px rgba(0, 27, 56, 0.2);
 
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   font-size: 16px;
@@ -25,6 +31,11 @@ body {
 
 img {
   display: block;
+}
+
+::selection {
+  background: var(--gold);
+  color: var(--text-h);
 }
 
 /* ---------- Layout ---------- */
@@ -75,7 +86,7 @@ img {
 }
 
 .btn--primary:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: var(--accent-hover);
 }
 
 .btn--ghost {

@@ -93,6 +93,12 @@
   margin: 0;
 }
 
+.guidelines__disclaimer {
+  margin-top: 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 @media (max-width: 560px) {
   .guidelines__section {
     padding: 18px;
