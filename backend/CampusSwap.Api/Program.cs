@@ -84,12 +84,22 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Apply pending database migrations at startup when enabled (turned on in the Azure settings)
+// Apply pending database migrations at startup when enabled (turned on in the Azure settings).
+// If the database cannot be reached, log it and keep running: /health/db then shows the problem.
+// Crashing here would make App Service restart the app in a loop, which uses up the free plan's CPU quota.
 if (app.Configuration.GetValue<bool>("Database:MigrateOnStartup"))
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogCritical(ex,
+            "Database migration failed at startup. Check the connection string and the database firewall.");
+    }
 }
 
 if (app.Environment.IsDevelopment())
