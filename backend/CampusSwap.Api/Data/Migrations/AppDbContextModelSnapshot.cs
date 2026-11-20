@@ -99,12 +99,10 @@ namespace CampusSwap.Api.Data.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Category")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
                     b.Property<string>("Condition")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
@@ -129,6 +127,13 @@ namespace CampusSwap.Api.Data.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Item");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -139,7 +144,10 @@ namespace CampusSwap.Api.Data.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("Items");
+                    b.ToTable("Items", t =>
+                        {
+                            t.HasCheckConstraint("CK_Items_PhysicalItemDetails", "\"Type\" <> 'Item' OR (\"Category\" IS NOT NULL AND \"Condition\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("CampusSwap.Api.Entities.ItemPhoto", b =>
