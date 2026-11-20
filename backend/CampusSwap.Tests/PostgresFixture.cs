@@ -8,9 +8,7 @@ namespace CampusSwap.Tests;
 // and applies the real migrations — so filtered indexes and row locks behave exactly like production.
 public class PostgresFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:17")
-        .Build();
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17").Build();
 
     public async Task InitializeAsync()
     {

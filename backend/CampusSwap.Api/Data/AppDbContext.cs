@@ -45,10 +45,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             e.Property(i => i.Name).HasMaxLength(100);
             e.Property(i => i.Description).HasMaxLength(2000);
+            e.Property(i => i.Type).HasConversion<string>().HasMaxLength(20)
+             .HasDefaultValue(ExchangeType.Item);   // rows created before exchange types existed are physical items
             e.Property(i => i.Category).HasConversion<string>().HasMaxLength(20);
             e.Property(i => i.Condition).HasConversion<string>().HasMaxLength(20);
             e.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
             e.Property(i => i.Version).IsRowVersion();
+
+            // A physical item must always have a category and a condition, even if something skips the API checks
+            e.ToTable(t => t.HasCheckConstraint(
+                "CK_Items_PhysicalItemDetails",
+                "\"Type\" <> 'Item' OR (\"Category\" IS NOT NULL AND \"Condition\" IS NOT NULL)"));
 
             e.HasOne(i => i.Owner)
              .WithMany(s => s.Items)

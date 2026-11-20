@@ -1,5 +1,6 @@
 using CampusSwap.Api.Data;
 using CampusSwap.Api.Entities;
+using CampusSwap.Api.Features.Exchanges;
 using CampusSwap.Api.Features.Swaps;
 using CampusSwap.Api.Features.Verification;
 using CampusSwap.Api.Infrastructure.Http;
@@ -48,7 +49,13 @@ public class OffersController(AppDbContext db, PhotoUploader photoUploader, Swap
         if (hasPendingOffer)
             return PendingOfferConflict();
 
-        var (photos, photoError) = await photoUploader.ValidateAsync(form.Photos, MaxPhotos, ct);
+        var type = form.Type ?? ExchangeType.Item;
+        ExchangeRules.ValidateDetails(type, form.Category, form.Condition, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var (photos, photoError) = await photoUploader.ValidateAsync(
+            form.Photos, ExchangeRules.MinPhotos(type), MaxPhotos, ct);
         if (photos is null)
         {
             ModelState.AddModelError(nameof(form.Photos), photoError ?? "Invalid photos.");
@@ -59,19 +66,21 @@ public class OffersController(AppDbContext db, PhotoUploader photoUploader, Swap
         var savedUrls = await photoUploader.SaveAsync(validPhotos, ct);
         try
         {
+            var (category, condition) = ExchangeRules.DetailsFor(type, form.Category, form.Condition);
             var offer = new SwapOffer
             {
                 ListingId = listingId,
                 OfferedById = studentId,
-                Type = OfferType.Item,
+                Type = type == ExchangeType.Item ? OfferType.Item : OfferType.Service,
                 Message = string.IsNullOrWhiteSpace(form.Message) ? null : form.Message.Trim(),
                 OfferedItem = new Item
                 {
                     OwnerId = studentId,
                     Name = form.ItemName.Trim(),
                     Description = form.ItemDescription?.Trim() ?? string.Empty,
-                    Category = form.Category!.Value,
-                    Condition = form.Condition!.Value,
+                    Type = type,
+                    Category = category,
+                    Condition = condition,
                     Photos = savedUrls
                         .Select((url, index) => new ItemPhoto { Url = url, SortOrder = index })
                         .ToList(),
@@ -199,8 +208,9 @@ public class OffersController(AppDbContext db, PhotoUploader photoUploader, Swap
                 offer.OfferedItem.Id,
                 offer.OfferedItem.Name,
                 offer.OfferedItem.Description,
-                offer.OfferedItem.Category.ToString(),
-                offer.OfferedItem.Condition.ToString(),
+                offer.OfferedItem.Type.ToString(),
+                offer.OfferedItem.Category?.ToString(),
+                offer.OfferedItem.Condition?.ToString(),
                 offer.OfferedItem.Photos
                     .OrderBy(p => p.SortOrder)
                     .Select(p => Request.ToAbsoluteUrl(p.Url))

@@ -13,11 +13,12 @@ public class CreateListingForm
     [MaxLength(2000)]
     public string? Description { get; set; }
 
-    // Nullable so that [Required] can tell "missing" apart from the first enum value
-    [Required]
+    // Item, Skill, Service or Experience. Missing means Item (what older versions of the app send).
+    public ExchangeType? Type { get; set; }
+
+    // Required for physical items only (checked by ExchangeRules), ignored for the other types
     public ItemCategory? Category { get; set; }
 
-    [Required]
     public ItemCondition? Condition { get; set; }
 
     [Required, MaxLength(500)]
@@ -33,8 +34,9 @@ public record ItemDto(
     int Id,
     string Name,
     string Description,
-    string Category,
-    string Condition,
+    string Type,
+    string? Category,
+    string? Condition,
     string Status,
     IReadOnlyList<string> PhotoUrls);
 
@@ -53,8 +55,9 @@ public record ListingDetailDto(
 public record ListingSummaryDto(
     int Id,
     string Name,
-    string Category,
-    string Condition,
+    string Type,
+    string? Category,
+    string? Condition,
     string WantedDescription,
     string OwnerName,
     IReadOnlyList<string> PhotoUrls,
@@ -70,6 +73,7 @@ public record PagedResult<T>(
 public record MyListingDto(
     int Id,
     string Name,
+    string Type,
     string Status,
     string? PhotoUrl,
     DateTime CreatedAt,

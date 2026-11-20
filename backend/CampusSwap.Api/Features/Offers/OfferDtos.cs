@@ -4,7 +4,7 @@ using CampusSwap.Api.Features.Verification;
 
 namespace CampusSwap.Api.Features.Offers;
 
-// An item offered in exchange, sent as multipart/form-data with photos
+// What is offered in exchange (an item, skill, service or experience), sent as multipart/form-data
 public class CreateOfferForm
 {
     [Required, MaxLength(100)]
@@ -13,10 +13,12 @@ public class CreateOfferForm
     [MaxLength(2000)]
     public string? ItemDescription { get; set; }
 
-    [Required]
+    // Missing means Item (what older versions of the app send)
+    public ExchangeType? Type { get; set; }
+
+    // Required for physical items only (checked by ExchangeRules)
     public ItemCategory? Category { get; set; }
 
-    [Required]
     public ItemCondition? Condition { get; set; }
 
     [MaxLength(1000)]
@@ -29,8 +31,9 @@ public record OfferedItemDto(
     int Id,
     string Name,
     string Description,
-    string Category,
-    string Condition,
+    string Type,
+    string? Category,
+    string? Condition,
     IReadOnlyList<string> PhotoUrls);
 
 public record OfferDto(

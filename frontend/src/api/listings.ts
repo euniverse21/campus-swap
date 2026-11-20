@@ -1,7 +1,8 @@
 import { apiFetch } from './client'
-import type { ItemCategory, ListingDetail, ListingSummary, MyListing, PagedResult } from './types'
+import type { ExchangeType, ItemCategory, ListingDetail, ListingSummary, MyListing, PagedResult } from './types'
 
 export interface ListingQuery {
+  type?: ExchangeType
   category?: ItemCategory
   search?: string
   page?: number
@@ -10,6 +11,7 @@ export interface ListingQuery {
 
 export function getListings(query: ListingQuery = {}): Promise<PagedResult<ListingSummary>> {
   const params = new URLSearchParams()
+  if (query.type) params.set('type', query.type)
   if (query.category) params.set('category', query.category)
   if (query.search) params.set('search', query.search)
   params.set('page', String(query.page ?? 1))

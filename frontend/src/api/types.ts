@@ -1,18 +1,27 @@
 // Shapes of the data the API sends back (mirror the C# DTOs)
 
+// The four kinds of exchange. Category and condition apply to physical items ('Item') only.
+export type ExchangeType = 'Item' | 'Skill' | 'Service' | 'Experience'
+
+export const EXCHANGE_TYPES: ExchangeType[] = ['Item', 'Skill', 'Service', 'Experience']
+
 export type ItemCategory =
   | 'Books'
   | 'Clothes'
-  | 'Jewellery'
   | 'Electronics'
+  | 'Furniture'
+  | 'Stationery'
+  | 'Jewellery'
   | 'Household'
   | 'Other'
 
 export const ITEM_CATEGORIES: ItemCategory[] = [
   'Books',
   'Clothes',
-  'Jewellery',
   'Electronics',
+  'Furniture',
+  'Stationery',
+  'Jewellery',
   'Household',
   'Other',
 ]
@@ -42,8 +51,9 @@ export interface SessionResponse {
 export interface ListingSummary {
   id: number
   name: string
-  category: ItemCategory
-  condition: ItemCondition
+  type: ExchangeType
+  category: ItemCategory | null
+  condition: ItemCondition | null
   wantedDescription: string
   ownerName: string
   photoUrls: string[]
@@ -61,8 +71,9 @@ export interface ListingDetail {
     id: number
     name: string
     description: string
-    category: ItemCategory
-    condition: ItemCondition
+    type: ExchangeType
+    category: ItemCategory | null
+    condition: ItemCondition | null
     status: string
     photoUrls: string[]
   }
@@ -83,8 +94,9 @@ export interface OfferedItem {
   id: number
   name: string
   description: string
-  category: ItemCategory
-  condition: ItemCondition
+  type: ExchangeType
+  category: ItemCategory | null
+  condition: ItemCondition | null
   photoUrls: string[]
 }
 
@@ -127,6 +139,7 @@ export interface ChatMessage {
 export interface MyListing {
   id: number
   name: string
+  type: ExchangeType
   status: ListingStatus
   photoUrl: string | null
   createdAt: string

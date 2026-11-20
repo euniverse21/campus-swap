@@ -9,8 +9,14 @@ public class Item
 
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public ItemCategory Category { get; set; }
-    public ItemCondition Condition { get; set; }
+
+    // Item, Skill, Service or Experience
+    public ExchangeType Type { get; set; } = ExchangeType.Item;
+
+    // Only physical items have a category and a condition (null for skills, services and experiences)
+    public ItemCategory? Category { get; set; }
+    public ItemCondition? Condition { get; set; }
+
     public ItemStatus Status { get; set; } = ItemStatus.Available;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

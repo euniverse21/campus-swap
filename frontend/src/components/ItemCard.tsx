@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import type { ListingSummary } from '../api/types'
 import { useLanguage } from '../i18n/useLanguage'
+import { EXCHANGE_ICONS, exchangeLabel } from '../utils/exchangeTypes'
 import './ItemCard.css'
 
 interface ItemCardProps {
@@ -17,12 +18,18 @@ export function ItemCard({ listing }: ItemCardProps) {
         {coverPhoto ? (
           <img src={coverPhoto} alt={listing.name} loading="lazy" />
         ) : (
-          <span className="item-card__no-photo">{t('common.noPhoto')}</span>
+          listing.type === 'Item' ? (
+            <span className="item-card__no-photo">{t('common.noPhoto')}</span>
+          ) : (
+            <span className="exchange-icon" aria-hidden="true">
+              {EXCHANGE_ICONS[listing.type]}
+            </span>
+          )
         )}
       </div>
 
       <div className="item-card__body">
-        <span className="item-card__category">{t(`category.${listing.category}`)}</span>
+        <span className="item-card__category">{exchangeLabel(t, listing)}</span>
         <h3 className="item-card__name">{listing.name}</h3>
         <p className="item-card__wanted">
           <span className="item-card__label">{t('itemCard.wants')}</span> {listing.wantedDescription}

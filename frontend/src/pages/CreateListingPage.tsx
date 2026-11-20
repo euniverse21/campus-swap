@@ -3,7 +3,8 @@ import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { createListing } from '../api/listings'
 import { ITEM_CATEGORIES, ITEM_CONDITIONS } from '../api/types'
-import type { ItemCategory, ItemCondition } from '../api/types'
+import type { ExchangeType, ItemCategory, ItemCondition } from '../api/types'
+import { ExchangeTypePicker } from '../components/ExchangeTypePicker'
 import { GuidelinesConsent } from '../components/GuidelinesConsent'
 import { PhotoPicker } from '../components/PhotoPicker'
 import { describeError } from '../i18n/describeError'
@@ -15,6 +16,7 @@ export function CreateListingPage() {
   const navigate = useNavigate()
   const { t } = useLanguage()
 
+  const [type, setType] = useState<ExchangeType>('Item')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState<ItemCategory | ''>('')
@@ -26,18 +28,24 @@ export function CreateListingPage() {
   const [isPreparingPhotos, setIsPreparingPhotos] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Category, condition and at least one photo are needed for physical items only
+  const isItem = type === 'Item'
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (photos.length === 0) {
+    if (isItem && photos.length === 0) {
       setError(t('create.noPhoto'))
       return
     }
 
     const form = new FormData()
+    form.append('type', type)
     form.append('name', name.trim())
     form.append('description', description.trim())
-    form.append('category', category)
-    form.append('condition', condition)
+    if (isItem) {
+      form.append('category', category)
+      form.append('condition', condition)
+    }
     form.append('wantedDescription', wantedDescription.trim())
     if (meetingLocation.trim()) form.append('meetingLocation', meetingLocation.trim())
     photos.forEach((photo) => form.append('photos', photo))
@@ -62,9 +70,16 @@ export function CreateListingPage() {
         {error && <p className="form-error">{error}</p>}
 
         <form onSubmit={handleSubmit} className="form">
+          <ExchangeTypePicker label={t('create.typeLabel')} value={type} onChange={setType} />
+
           <fieldset className="form-field">
             <span>
-              {t('create.photos')} <small>{t('create.photosHint', { max: MAX_PHOTOS })}</small>
+              {t('create.photos')}{' '}
+              <small>
+                {isItem
+                  ? t('create.photosHint', { max: MAX_PHOTOS })
+                  : t('create.photosOptionalHint', { max: MAX_PHOTOS })}
+              </small>
             </span>
             <PhotoPicker
               photos={photos}
@@ -76,60 +91,62 @@ export function CreateListingPage() {
           </fieldset>
 
           <label className="form-field">
-            <span>{t('create.name')}</span>
+            <span>{t(`create.name.${type}`)}</span>
             <input
               required
               maxLength={100}
-              placeholder={t('create.namePlaceholder')}
+              placeholder={t(`create.namePlaceholder.${type}`)}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </label>
 
-          <div className="form-row">
-            <label className="form-field">
-              <span>{t('create.category')}</span>
-              <select
-                required
-                value={category}
-                onChange={(e) => setCategory(e.target.value as ItemCategory)}
-              >
-                <option value="" disabled>
-                  {t('common.choose')}
-                </option>
-                {ITEM_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {t(`category.${c}`)}
+          {isItem && (
+            <div className="form-row">
+              <label className="form-field">
+                <span>{t('create.category')}</span>
+                <select
+                  required
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as ItemCategory)}
+                >
+                  <option value="" disabled>
+                    {t('common.choose')}
                   </option>
-                ))}
-              </select>
-            </label>
+                  {ITEM_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>
+                      {t(`category.${c}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label className="form-field">
-              <span>{t('create.condition')}</span>
-              <select
-                required
-                value={condition}
-                onChange={(e) => setCondition(e.target.value as ItemCondition)}
-              >
-                <option value="" disabled>
-                  {t('common.choose')}
-                </option>
-                {ITEM_CONDITIONS.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {t(`condition.${c.value}`)}
+              <label className="form-field">
+                <span>{t('create.condition')}</span>
+                <select
+                  required
+                  value={condition}
+                  onChange={(e) => setCondition(e.target.value as ItemCondition)}
+                >
+                  <option value="" disabled>
+                    {t('common.choose')}
                   </option>
-                ))}
-              </select>
-            </label>
-          </div>
+                  {ITEM_CONDITIONS.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {t(`condition.${c.value}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
 
           <label className="form-field">
             <span>{t('create.description')}</span>
             <textarea
               rows={3}
               maxLength={2000}
-              placeholder={t('create.descriptionPlaceholder')}
+              placeholder={t(`create.descriptionPlaceholder.${type}`)}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />

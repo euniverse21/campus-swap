@@ -22,12 +22,15 @@ public class PhotoUploader(IPhotoStorage storage)
 {
     public const long MaxPhotoBytes = 5 * 1024 * 1024; // 5 MB per photo
 
-    // Returns the photos, or an error message when any file is missing, too big or not a real image
+    // Returns the photos, or an error message when there are too few/many files, or one is too big or not a real image.
+    // minPhotos is 1 for physical items and 0 for skills, services and experiences (photos optional).
     public async Task<(ValidatedPhotos? Photos, string? Error)> ValidateAsync(
-        IReadOnlyList<IFormFile> files, int maxPhotos, CancellationToken ct = default)
+        IReadOnlyList<IFormFile> files, int minPhotos, int maxPhotos, CancellationToken ct = default)
     {
-        if (files.Count == 0 || files.Count > maxPhotos)
-            return (null, $"Please add between 1 and {maxPhotos} photos.");
+        if (files.Count < minPhotos || files.Count > maxPhotos)
+            return (null, minPhotos > 0
+                ? $"Please add between {minPhotos} and {maxPhotos} photos."
+                : $"You can add up to {maxPhotos} photos.");
 
         var photos = new List<(MemoryStream Content, string Extension)>();
         foreach (var file in files)

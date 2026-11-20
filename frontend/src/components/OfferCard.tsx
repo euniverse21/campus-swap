@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Offer } from '../api/types'
 import { useLanguage } from '../i18n/useLanguage'
+import { EXCHANGE_ICONS } from '../utils/exchangeTypes'
 import './Offers.css'
 
 interface OfferCardProps {
@@ -16,7 +17,13 @@ export function OfferCard({ offer, actions }: OfferCardProps) {
   return (
     <article className={`offer-card offer-card--${offer.status.toLowerCase()}`}>
       <div className="offer-card__photo">
-        {item?.photoUrls[0] ? <img src={item.photoUrls[0]} alt={item.name} /> : <span>{t('common.noPhoto')}</span>}
+        {item?.photoUrls[0] ? <img src={item.photoUrls[0]} alt={item.name} /> : item && item.type !== 'Item' ? (
+          <span className="exchange-icon" aria-hidden="true">
+            {EXCHANGE_ICONS[item.type]}
+          </span>
+        ) : (
+          <span>{t('common.noPhoto')}</span>
+        )}
       </div>
 
       <div className="offer-card__body">
@@ -27,11 +34,16 @@ export function OfferCard({ offer, actions }: OfferCardProps) {
 
         {item && (
           <p className="offer-card__meta">
-            {tRich('offerCard.meta', {
-              category: t(`category.${item.category}`),
-              condition: t(`condition.${item.condition}`),
-              name: <strong>{offer.isMine ? t('offerCard.you') : offer.offeredBy.displayName}</strong>,
-            })}
+            {item.type === 'Item' && item.category && item.condition
+              ? tRich('offerCard.meta', {
+                  category: t(`category.${item.category}`),
+                  condition: t(`condition.${item.condition}`),
+                  name: <strong>{offer.isMine ? t('offerCard.you') : offer.offeredBy.displayName}</strong>,
+                })
+              : tRich('offerCard.metaType', {
+                  type: t(`exchangeType.${item.type}`),
+                  name: <strong>{offer.isMine ? t('offerCard.you') : offer.offeredBy.displayName}</strong>,
+                })}
           </p>
         )}
 

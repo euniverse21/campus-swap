@@ -47,6 +47,12 @@
   border-radius: 8px;
   overflow: hidden;
   background: var(--muted-bg);
+  display: grid;
+  place-items: center;
+}
+
+.my-listing__photo .exchange-icon {
+  font-size: 28px;
 }
 
 .my-listing__photo img {

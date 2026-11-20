@@ -1,5 +1,6 @@
 using CampusSwap.Api.Data;
 using CampusSwap.Api.Entities;
+using CampusSwap.Api.Features.Exchanges;
 using CampusSwap.Api.Features.Swaps;
 using CampusSwap.Api.Features.Verification;
 using CampusSwap.Api.Infrastructure.Http;
@@ -25,8 +26,14 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
     [RequestFormLimits(MultipartBodyLengthLimit = MaxRequestBytes)]
     public async Task<ActionResult<ListingDetailDto>> Create([FromForm] CreateListingForm form, CancellationToken ct)
     {
-        // 1) Check every photo BEFORE saving anything
-        var (photos, photoError) = await photoUploader.ValidateAsync(form.Photos, MaxPhotos, ct);
+        // 1) Check the details and every photo BEFORE saving anything
+        var type = form.Type ?? ExchangeType.Item;
+        ExchangeRules.ValidateDetails(type, form.Category, form.Condition, ModelState);
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var (photos, photoError) = await photoUploader.ValidateAsync(
+            form.Photos, ExchangeRules.MinPhotos(type), MaxPhotos, ct);
         if (photos is null)
         {
             ModelState.AddModelError(nameof(form.Photos), photoError ?? "Invalid photos.");
@@ -39,13 +46,15 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
         var savedUrls = await photoUploader.SaveAsync(validPhotos, ct);
         try
         {
+            var (category, condition) = ExchangeRules.DetailsFor(type, form.Category, form.Condition);
             var item = new Item
             {
                 OwnerId = studentId,
                 Name = form.Name.Trim(),
                 Description = form.Description?.Trim() ?? string.Empty,
-                Category = form.Category!.Value,
-                Condition = form.Condition!.Value,
+                Type = type,
+                Category = category,
+                Condition = condition,
                 Photos = savedUrls
                     .Select((url, index) => new ItemPhoto { Url = url, SortOrder = index })
                     .ToList(),
@@ -75,9 +84,10 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
         }
     }
 
-    // Browse open listings (anyone). Newest first, optional category filter and name search.
+    // Browse open listings (anyone). Newest first, optional type and category filters and name search.
     [HttpGet]
     public async Task<ActionResult<PagedResult<ListingSummaryDto>>> Browse(
+        [FromQuery] ExchangeType? type,
         [FromQuery] ItemCategory? category,
         [FromQuery] string? search,
         [FromQuery] int page = 1,
@@ -90,6 +100,9 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
         var query = db.Listings
             .AsNoTracking()
             .Where(l => l.Status == ListingStatus.Open);
+
+        if (type is not null)
+            query = query.Where(l => l.Item.Type == type.Value);
 
         if (category is not null)
             query = query.Where(l => l.Item.Category == category.Value);
@@ -111,6 +124,7 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
             {
                 l.Id,
                 l.Item.Name,
+                l.Item.Type,
                 l.Item.Category,
                 l.Item.Condition,
                 l.WantedDescription,
@@ -124,8 +138,9 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
             .Select(r => new ListingSummaryDto(
                 r.Id,
                 r.Name,
-                r.Category.ToString(),
-                r.Condition.ToString(),
+                r.Type.ToString(),
+                r.Category?.ToString(),
+                r.Condition?.ToString(),
                 r.WantedDescription,
                 r.OwnerName,
                 r.PhotoUrls.Select(url => Request.ToAbsoluteUrl(url)).ToList(),
@@ -151,6 +166,7 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
             {
                 l.Id,
                 l.Item.Name,
+                l.Item.Type,
                 l.Status,
                 l.CreatedAt,
                 PhotoUrl = l.Item.Photos.OrderBy(p => p.SortOrder).Select(p => p.Url).FirstOrDefault(),
@@ -166,6 +182,7 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
             .Select(r => new MyListingDto(
                 r.Id,
                 r.Name,
+                r.Type.ToString(),
                 r.Status.ToString(),
                 r.PhotoUrl is null ? null : Request.ToAbsoluteUrl(r.PhotoUrl),
                 r.CreatedAt,
@@ -221,8 +238,9 @@ public class ListingsController(AppDbContext db, PhotoUploader photoUploader, Sw
                 listing.Item.Id,
                 listing.Item.Name,
                 listing.Item.Description,
-                listing.Item.Category.ToString(),
-                listing.Item.Condition.ToString(),
+                listing.Item.Type.ToString(),
+                listing.Item.Category?.ToString(),
+                listing.Item.Condition?.ToString(),
                 listing.Item.Status.ToString(),
                 photoUrls),
             pendingOfferCount,

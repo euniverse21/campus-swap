@@ -7,6 +7,7 @@ import { useAuth } from '../auth/useAuth'
 import { ListingOffersSection } from '../components/ListingOffersSection'
 import { describeError } from '../i18n/describeError'
 import { useLanguage } from '../i18n/useLanguage'
+import { EXCHANGE_ICONS, exchangeLabel } from '../utils/exchangeTypes'
 import './ListingDetailPage.css'
 
 interface LoadResult {
@@ -92,7 +93,13 @@ export function ListingDetailPage() {
       <div className="listing-detail">
         <section className="listing-detail__gallery">
           <div className="listing-detail__main-photo">
-            {currentPhoto ? <img src={currentPhoto} alt={listing.item.name} /> : <span>{t('common.noPhoto')}</span>}
+            {currentPhoto ? <img src={currentPhoto} alt={listing.item.name} /> : listing.item.type === 'Item' ? (
+              <span>{t('common.noPhoto')}</span>
+            ) : (
+              <span className="exchange-icon" aria-hidden="true">
+                {EXCHANGE_ICONS[listing.item.type]}
+              </span>
+            )}
           </div>
           {photos.length > 1 && (
             <div className="listing-detail__thumbs">
@@ -118,13 +125,15 @@ export function ListingDetailPage() {
             </p>
           )}
 
-          <span className="item-card__category">{t(`category.${listing.item.category}`)}</span>
+          <span className="item-card__category">{exchangeLabel(t, listing.item)}</span>
           <h1>{listing.item.name}</h1>
           <p className="listing-detail__meta">
-            {tRich('detail.meta', {
-              condition: t(`condition.${listing.item.condition}`),
-              name: <strong>{listing.owner.displayName}</strong>,
-            })}
+            {listing.item.condition
+              ? tRich('detail.meta', {
+                  condition: t(`condition.${listing.item.condition}`),
+                  name: <strong>{listing.owner.displayName}</strong>,
+                })
+              : tRich('detail.metaNoCondition', { name: <strong>{listing.owner.displayName}</strong> })}
             {offerCount > 0 &&
               ` · ${t(offerCount === 1 ? 'detail.offerCount.one' : 'detail.offerCount.other', { count: offerCount })}`}
           </p>

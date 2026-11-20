@@ -35,6 +35,8 @@ const SERVER_MESSAGES: Record<string, MessageKey> = {
   'Only the owner can cancel this listing.': 'server.ownerCancel',
   'Only the two students in this swap can confirm it.': 'server.participantsConfirm',
   'Only the two students in this swap can cancel it.': 'server.participantsCancel',
+  'Please choose a category.': 'server.chooseCategory',
+  'Please choose the condition.': 'server.chooseCondition',
 }
 
 // Turns any caught error into a message in the student's language
@@ -49,8 +51,11 @@ export function describeError(
     const known = SERVER_MESSAGES[err.message]
     if (known) return t(known)
 
-    const photoCount = /^Please add between 1 and (\d+) photos\.$/.exec(err.message)
+    const photoCount = /^Please add between \d+ and (\d+) photos\.$/.exec(err.message)
     if (photoCount) return t('server.photoCount', { max: photoCount[1] })
+
+    const photoMax = /^You can add up to (\d+) photos\.$/.exec(err.message)
+    if (photoMax) return t('photos.max', { max: photoMax[1] })
 
     const failed = /^Request failed \((\d+)\)$/.exec(err.message)
     if (failed) return t('errors.requestFailed', { status: failed[1] })

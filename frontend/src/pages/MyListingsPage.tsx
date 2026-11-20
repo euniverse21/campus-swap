@@ -5,6 +5,7 @@ import type { MyListing } from '../api/types'
 import { describeError } from '../i18n/describeError'
 import type { Translate } from '../i18n/LanguageContext'
 import { useLanguage } from '../i18n/useLanguage'
+import { EXCHANGE_ICONS } from '../utils/exchangeTypes'
 import './MyListingsPage.css'
 
 interface LoadResult {
@@ -38,7 +39,13 @@ function ListingRow({ listing }: { listing: MyListing }) {
   return (
     <Link to={`/listings/${listing.id}`} className="my-listing">
       <div className="my-listing__photo">
-        {listing.photoUrl ? <img src={listing.photoUrl} alt={listing.name} /> : null}
+        {listing.photoUrl ? (
+          <img src={listing.photoUrl} alt={listing.name} />
+        ) : (
+          <span className="exchange-icon" aria-hidden="true">
+            {EXCHANGE_ICONS[listing.type]}
+          </span>
+        )}
       </div>
       <div className="my-listing__body">
         <div className="my-listing__top">
